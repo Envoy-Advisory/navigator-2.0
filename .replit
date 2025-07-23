@@ -1,5 +1,5 @@
 run = "npm run dev"
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "postgresql-16"]
 hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
 entrypoint = "src/App.tsx"
 
@@ -23,12 +23,25 @@ localPort = 5174
 externalPort = 3000
 
 [workflows]
-runButton = "Start Development Server"
+runButton = "Full Stack Development"
 
 [[workflows.workflow]]
 name = "Start Development Server"
 author = 44543348
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Full Stack Development"
+author = 44543348
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && npm install && npm run dev"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

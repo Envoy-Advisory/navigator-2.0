@@ -1309,6 +1309,11 @@ body {
   background: #5a6fd8;
 }
 
+.auth-submit:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
 .auth-switch {
   margin-top: 1rem;
   text-align: center;
