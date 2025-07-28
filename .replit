@@ -28,7 +28,7 @@ localPort = 5174
 externalPort = 3000
 
 [workflows]
-runButton = "Full Stack Development"
+runButton = "Restart Full Stack"
 
 [[workflows.workflow]]
 name = "Start Development Server"
@@ -42,6 +42,19 @@ args = "cd client && npm run dev"
 [[workflows.workflow]]
 name = "Full Stack Development"
 author = 44543348
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
+
+[[workflows.workflow]]
+name = "Restart Full Stack"
+author = 44543364
 mode = "parallel"
 
 [[workflows.workflow.tasks]]
