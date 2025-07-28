@@ -23,6 +23,7 @@ interface JWTPayload {
 
 interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
+  headers: any;
 }
 
 interface RegisterRequest {
