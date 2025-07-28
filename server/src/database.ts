@@ -36,8 +36,7 @@ export async function initializeDatabase(): Promise<void> {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'employer',
-        organization VARCHAR(255),
-        organization_id VARCHAR(255),
+        organization_id INTEGER REFERENCES organizations(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP
       )
@@ -68,7 +67,7 @@ export class UserService {
 
   static async findById(id: number): Promise<User | null> {
     const result = await pool.query(
-      'SELECT id, name, email, role, organization, organization_id, created_at, last_login FROM users WHERE id = $1',
+      'SELECT id, name, email, role, organization_id, created_at, last_login FROM users WHERE id = $1',
       [id]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
