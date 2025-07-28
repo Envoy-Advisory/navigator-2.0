@@ -30,7 +30,7 @@ interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  organizationName?: string;
+  organization?: string;
 }
 
 interface LoginRequest {
@@ -41,7 +41,7 @@ interface LoginRequest {
 // Register endpoint
 app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Response) => {
   try {
-    const { name, email, password, organizationName } = req.body;
+    const { name, email, password, organization } = req.body;
 
     // Check if user already exists
     const existingUser = await UserService.findByEmail(email);
@@ -55,9 +55,11 @@ app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Res
 
     // Create organization if provided
     let organizationId: number | undefined = undefined;
-    if (organizationName) {
-      const orgResult = await OrganizationService.create(organizationName);
+    if (organization) {
+      console.log('Creating organization:', organization);
+      const orgResult = await OrganizationService.create(organization);
       organizationId = orgResult.id;
+      console.log('Organization created with ID:', organizationId);
     }
 
     // Create user
