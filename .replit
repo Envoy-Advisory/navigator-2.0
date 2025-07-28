@@ -1,7 +1,8 @@
+
 run = "npm run dev"
 modules = ["nodejs-20", "postgresql-16"]
-hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
-entrypoint = "src/App.tsx"
+hidden = [".config", "client/tsconfig.json", "client/tsconfig.node.json", "client/vite.config.js", ".gitignore"]
+entrypoint = "client/src/App.tsx"
 
 [nix]
 channel = "stable-24_05"
@@ -11,8 +12,8 @@ language = "nodejs"
 
 [deployment]
 deploymentTarget = "static"
-build = ["npm", "run", "build"]
-publicDir = "dist"
+build = ["cd client && npm run build"]
+publicDir = "client/dist"
 
 [[ports]]
 localPort = 5173
@@ -32,7 +33,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "cd client && npm run dev"
 
 [[workflows.workflow]]
 name = "Full Stack Development"
@@ -45,4 +46,4 @@ args = "cd server && npm run dev"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "cd client && npm run dev"
