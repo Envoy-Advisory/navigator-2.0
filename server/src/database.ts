@@ -1,4 +1,3 @@
-
 import { PrismaClient, User, Organization } from '@prisma/client';
 
 // Prisma client instance
@@ -14,22 +13,6 @@ export async function initializeDatabase(): Promise<void> {
     console.log('Database connected with Prisma');
   } catch (error) {
     console.error('Error connecting to database:', error);
-  }
-}
-
-// Reset database and apply schema
-export async function resetDatabase(): Promise<void> {
-  try {
-    console.log('Resetting database...');
-    
-    // Delete all data in correct order (respecting foreign keys)
-    await prisma.user.deleteMany();
-    await prisma.organization.deleteMany();
-    
-    console.log('Database reset completed');
-  } catch (error) {
-    console.error('Error resetting database:', error);
-    throw error;
   }
 }
 

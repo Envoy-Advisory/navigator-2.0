@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { UserService, OrganizationService, initializeDatabase, resetDatabase, closeDatabase, User } from './database';
+import { UserService, OrganizationService, initializeDatabase, closeDatabase, User } from './database';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -195,7 +195,6 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on port ${PORT}`);
   await initializeDatabase();
-  await resetDatabase();
 });
 
 // Graceful shutdown
