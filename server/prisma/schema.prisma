@@ -1,0 +1,41 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                Int      @id @default(autoincrement())
+  name              String   @db.VarChar(255)
+  subscription_type String   @default("basic") @db.VarChar(50)
+  settings          Json     @default("{}")
+  created_at        DateTime @default(now())
+  
+  // Relations
+  users User[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String    @db.VarChar(255)
+  email           String    @unique @db.VarChar(255)
+  password        String    @db.VarChar(255)
+  role            String    @default("employer") @db.VarChar(50)
+  organization_id Int?
+  created_at      DateTime  @default(now())
+  last_login      DateTime?
+
+  // Relations
+  organization Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+
+  @@map("users")
+}

@@ -1,76 +1,57 @@
-import { Pool } from 'pg';
 
-// PostgreSQL connection
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+import { PrismaClient, User, Organization } from '@prisma/client';
 
-// Types
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  organization_id?: number;
-  created_at: Date;
-  last_login?: Date;
-}
+// Prisma client instance
+export const prisma = new PrismaClient();
 
-export interface Organization {
-  id: number;
-  name: string;
-  subscription_type: string;
-  settings: any;
-  created_at: Date;
-}
+// Export types from Prisma
+export type { User, Organization };
 
-// Initialize database tables
+// Initialize database connection
 export async function initializeDatabase(): Promise<void> {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) DEFAULT 'employer',
-        organization_id INTEGER REFERENCES organizations(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS organizations (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        subscription_type VARCHAR(50) DEFAULT 'basic',
-        settings JSONB DEFAULT '{}'::jsonb,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('Database tables initialized');
+    await prisma.$connect();
+    console.log('Database connected with Prisma');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('Error connecting to database:', error);
   }
+}
+
+// Reset database and apply schema
+export async function resetDatabase(): Promise<void> {
+  try {
+    console.log('Resetting database...');
+    
+    // Delete all data in correct order (respecting foreign keys)
+    await prisma.user.deleteMany();
+    await prisma.organization.deleteMany();
+    
+    console.log('Database reset completed');
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    throw error;
+  }
+}
+
+// Cleanup function for graceful shutdown
+export async function closeDatabase(): Promise<void> {
+  await prisma.$disconnect();
 }
 
 // User operations
 export class UserService {
   static async findByEmail(email: string): Promise<User | null> {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    return await prisma.user.findUnique({
+      where: { email },
+      include: { organization: true }
+    });
   }
 
   static async findById(id: number): Promise<User | null> {
-    const result = await pool.query(
-      'SELECT id, name, email, role, organization_id, created_at, last_login FROM users WHERE id = $1',
-      [id]
-    );
-    return result.rows.length > 0 ? result.rows[0] : null;
+    return await prisma.user.findUnique({
+      where: { id },
+      include: { organization: true }
+    });
   }
 
   static async create(userData: {
@@ -80,31 +61,39 @@ export class UserService {
     organizationId?: number;
   }): Promise<User> {
     const { name, email, password, organizationId } = userData;
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password, organization_id, last_login) 
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) RETURNING id, name, email, role, organization_id, created_at, last_login`,
-      [name, email, password, organizationId]
-    );
-    return result.rows[0];
+    return await prisma.user.create({
+      data: {
+        name,
+        email,
+        password,
+        organization_id: organizationId,
+        last_login: new Date()
+      },
+      include: { organization: true }
+    });
   }
 
   static async updateLastLogin(id: number): Promise<void> {
-    await pool.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+    await prisma.user.update({
+      where: { id },
+      data: { last_login: new Date() }
+    });
   }
 }
 
 // Organization operations
 export class OrganizationService {
   static async create(name: string): Promise<{ id: number }> {
-    const result = await pool.query(
-      'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
-      [name]
-    );
-    return result.rows[0];
+    const organization = await prisma.organization.create({
+      data: { name }
+    });
+    return { id: organization.id };
   }
 
   static async findById(id: number): Promise<Organization | null> {
-    const result = await pool.query('SELECT * FROM organizations WHERE id = $1', [id]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    return await prisma.organization.findUnique({
+      where: { id },
+      include: { users: true }
+    });
   }
 }
