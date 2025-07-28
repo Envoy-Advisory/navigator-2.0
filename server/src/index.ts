@@ -1,4 +1,3 @@
-
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
@@ -30,7 +29,7 @@ interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  organization?: string;
+  organizationName?: string;
 }
 
 interface LoginRequest {
@@ -41,7 +40,7 @@ interface LoginRequest {
 // Register endpoint
 app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Response) => {
   try {
-    const { name, email, password, organization } = req.body;
+    const { name, email, password, organizationName } = req.body;
 
     // Check if user already exists
     const existingUser = await UserService.findByEmail(email);
@@ -54,9 +53,9 @@ app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Res
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create organization if provided
-    let organizationId: number | null = null;
-    if (organization) {
-      const orgResult = await OrganizationService.create(organization);
+    let organizationId: number | undefined = undefined;
+    if (organizationName) {
+      const orgResult = await OrganizationService.create(organizationName);
       organizationId = orgResult.id;
     }
 
@@ -65,7 +64,6 @@ app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Res
       name,
       email,
       password: hashedPassword,
-      organization,
       organizationId
     });
 
@@ -83,7 +81,6 @@ app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Res
         name: user.name,
         email: user.email,
         role: user.role,
-        organization: user.organization,
         organizationId: user.organization_id?.toString(),
         createdAt: user.created_at,
         lastLogin: user.last_login
@@ -130,7 +127,6 @@ app.post('/api/login', async (req: Request<{}, {}, LoginRequest>, res: Response)
         name: user.name,
         email: user.email,
         role: user.role,
-        organization: user.organization,
         organizationId: user.organization_id?.toString(),
         createdAt: user.created_at,
         lastLogin: new Date()
@@ -178,7 +174,6 @@ app.get('/api/verify', authenticateToken, async (req: AuthenticatedRequest, res:
         name: user.name,
         email: user.email,
         role: user.role,
-        organization: user.organization,
         organizationId: user.organization_id?.toString(),
         createdAt: user.created_at,
         lastLogin: user.last_login

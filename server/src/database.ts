@@ -1,4 +1,3 @@
-
 import { Pool } from 'pg';
 
 // PostgreSQL connection
@@ -14,7 +13,6 @@ export interface User {
   email: string;
   password: string;
   role: string;
-  organization?: string;
   organization_id?: number;
   created_at: Date;
   last_login?: Date;
@@ -80,14 +78,13 @@ export class UserService {
     name: string;
     email: string;
     password: string;
-    organization?: string;
     organizationId?: number;
   }): Promise<User> {
-    const { name, email, password, organization, organizationId } = userData;
+    const { name, email, password, organizationId } = userData;
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, organization, organization_id, last_login) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id, name, email, role, organization, organization_id, created_at, last_login`,
-      [name, email, password, organization, organizationId]
+      `INSERT INTO users (name, email, password, organization_id, last_login) 
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) RETURNING id, name, email, role, organization_id, created_at, last_login`,
+      [name, email, password, organizationId]
     );
     return result.rows[0];
   }
