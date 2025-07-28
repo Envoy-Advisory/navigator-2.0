@@ -4,6 +4,7 @@
   "description": "A full-stack web application built with React TypeScript frontend and Express.js backend.",
   "main": "index.js",
   "dependencies": {
+    "@prisma/client": "^6.12.0",
     "acorn": "^8.15.0",
     "acorn-walk": "^8.3.4",
     "ansi-regex": "^5.0.1",
@@ -74,6 +75,7 @@
     "postgres-bytea": "^1.0.0",
     "postgres-date": "^1.0.7",
     "postgres-interval": "^1.2.0",
+    "prisma": "^6.12.0",
     "protobufjs": "^7.5.3",
     "pstree.remy": "^1.1.8",
     "react": "^18.2.0",
@@ -121,7 +123,6 @@
     "yargs-parser": "^21.1.1",
     "yn": "^3.1.1"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
