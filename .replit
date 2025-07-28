@@ -16,6 +16,10 @@ build = ["cd client && npm run build"]
 publicDir = "client/dist"
 
 [[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
 localPort = 5173
 externalPort = 80
 
