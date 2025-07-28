@@ -1,30 +1,11 @@
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User, Organization } from '@prisma/client';
 
 // Prisma client instance
 export const prisma = new PrismaClient();
 
-// Define types manually to avoid import issues
-export type User = {
-  id: number;
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-  organization_id: number | null;
-  created_at: Date;
-  last_login: Date | null;
-  organization?: Organization | null;
-};
-
-export type Organization = {
-  id: number;
-  name: string;
-  subscription_type: string;
-  settings: any;
-  created_at: Date;
-  users?: User[];
-};
+// Export types from Prisma
+export type { User, Organization };
 
 // Initialize database connection
 export async function initializeDatabase(): Promise<void> {
