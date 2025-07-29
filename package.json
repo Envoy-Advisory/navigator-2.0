@@ -1,5 +1,6 @@
 
-  "name": "fair-chance-navigator-fullstack",
+  {
+    "name": "fair-chance-navigator-fullstack",
   "version": "1.0.0",
   "description": "Full-stack Fair Chance Navigator 2.0 application",
   "private": true,
