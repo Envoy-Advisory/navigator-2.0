@@ -15,10 +15,10 @@
     },
     {
       "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "outputDirectory": "client/dist"
+      "use": "@vercel/static-build"
     }
   ],
+  "outputDirectory": "client/dist",
   "routes": [
     {
       "src": "/api/(.*)",
