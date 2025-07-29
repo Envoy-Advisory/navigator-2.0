@@ -32,5 +32,5 @@
     }
   ],
   "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
-  "buildCommand": "cd client && npm run build && cd ../server && npm run build"
+  "buildCommand": "cd server && npm run db:generate && npm run build && cd ../client && npm run build"
 }
