@@ -5,8 +5,19 @@
   "description": "React TypeScript on Replit, using Vite bundler",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --mode local",
+    "dev:dev": "vite --mode dev",
+    "dev:uat": "vite --mode uat",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:local": "tsc && vite build --mode local",
+    "build:dev": "tsc && vite build --mode dev",
+    "build:uat": "tsc && vite build --mode uat",
+    "build:prod": "tsc && vite build --mode prod",
+    "preview": "vite preview",
+    "preview:local": "vite preview --mode local",
+    "preview:dev": "vite preview --mode dev",
+    "preview:uat": "vite preview --mode uat",
+    "preview:prod": "vite preview --mode prod"
   },
   "keywords": [],
   "author": "",
