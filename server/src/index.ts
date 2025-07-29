@@ -189,7 +189,10 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Initialize database on startup
-initializeDatabase().catch(console.error);
+initializeDatabase().catch((error) => {
+  console.error('Failed to initialize database:', error);
+  // Don't throw here as it would prevent the app from starting
+});
 
 // For Vercel serverless deployment
 export default app;

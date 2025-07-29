@@ -1,7 +1,14 @@
 import { PrismaClient, User, Organization } from '@prisma/client';
 
-// Prisma client instance
-export const prisma = new PrismaClient();
+// Prisma client instance with proper configuration for serverless
+export const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 // Export types from Prisma
 export type { User, Organization };
@@ -11,30 +18,50 @@ export async function initializeDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('Database connected with Prisma');
+    
+    // Test the connection
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('Database connection test successful');
   } catch (error) {
     console.error('Error connecting to database:', error);
+    throw error;
   }
 }
 
 // Cleanup function for graceful shutdown
 export async function closeDatabase(): Promise<void> {
-  await prisma.$disconnect();
+  try {
+    await prisma.$disconnect();
+    console.log('Database disconnected');
+  } catch (error) {
+    console.error('Error disconnecting from database:', error);
+  }
 }
 
 // User operations
 export class UserService {
   static async findByEmail(email: string): Promise<User | null> {
-    return await prisma.user.findUnique({
-      where: { email },
-      include: { organization: true }
-    });
+    try {
+      return await prisma.user.findUnique({
+        where: { email },
+        include: { organization: true }
+      });
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      throw error;
+    }
   }
 
   static async findById(id: number): Promise<User | null> {
-    return await prisma.user.findUnique({
-      where: { id },
-      include: { organization: true }
-    });
+    try {
+      return await prisma.user.findUnique({
+        where: { id },
+        include: { organization: true }
+      });
+    } catch (error) {
+      console.error('Error finding user by id:', error);
+      throw error;
+    }
   }
 
   static async create(userData: {
@@ -43,40 +70,60 @@ export class UserService {
     password: string;
     organizationId?: number;
   }): Promise<User> {
-    const { name, email, password, organizationId } = userData;
-    return await prisma.user.create({
-      data: {
-        name,
-        email,
-        password,
-        organization_id: organizationId,
-        last_login: new Date()
-      },
-      include: { organization: true }
-    });
+    try {
+      const { name, email, password, organizationId } = userData;
+      return await prisma.user.create({
+        data: {
+          name,
+          email,
+          password,
+          organization_id: organizationId,
+          last_login: new Date()
+        },
+        include: { organization: true }
+      });
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   static async updateLastLogin(id: number): Promise<void> {
-    await prisma.user.update({
-      where: { id },
-      data: { last_login: new Date() }
-    });
+    try {
+      await prisma.user.update({
+        where: { id },
+        data: { last_login: new Date() }
+      });
+    } catch (error) {
+      console.error('Error updating last login:', error);
+      throw error;
+    }
   }
 }
 
 // Organization operations
 export class OrganizationService {
   static async create(name: string): Promise<{ id: number }> {
-    const organization = await prisma.organization.create({
-      data: { name }
-    });
-    return { id: organization.id };
+    try {
+      const organization = await prisma.organization.create({
+        data: { name }
+      });
+      return { id: organization.id };
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      throw error;
+    }
   }
 
   static async findById(id: number): Promise<Organization | null> {
-    return await prisma.organization.findUnique({
-      where: { id },
-      include: { users: true }
-    });
+    try {
+      return await prisma.organization.findUnique({
+        where: { id },
+        include: { users: true }
+      });
+    } catch (error) {
+      console.error('Error finding organization by id:', error);
+      throw error;
+    }
   }
 }

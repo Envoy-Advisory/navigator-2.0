@@ -16,6 +16,7 @@
     "start:uat": "NODE_ENV=uat node dist/index.js",
     "start:prod": "NODE_ENV=production node dist/index.js",
     "watch": "tsc --watch",
+    "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
