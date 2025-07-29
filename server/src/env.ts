@@ -1,0 +1,120 @@
+
+import { config } from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+
+/**
+ * Load environment variables from .env file
+ * This function will load the appropriate .env file based on NODE_ENV
+ * and populate process.env with the values
+ */
+export function loadEnvironment(): void {
+  const nodeEnv = process.env.NODE_ENV || 'local';
+  
+  // Define possible .env file paths in order of priority
+  const envFiles = [
+    `.env.${nodeEnv}`,
+    '.env.local',
+    '.env'
+  ];
+
+  let loaded = false;
+
+  // Try to load environment files in order of priority
+  for (const envFile of envFiles) {
+    const envPath = path.resolve(process.cwd(), envFile);
+    
+    if (fs.existsSync(envPath)) {
+      console.log(`Loading environment variables from: ${envFile}`);
+      
+      const result = config({ path: envPath });
+      
+      if (result.error) {
+        console.error(`Error loading ${envFile}:`, result.error);
+      } else {
+        console.log(`Successfully loaded environment variables from ${envFile}`);
+        loaded = true;
+        break;
+      }
+    }
+  }
+
+  if (!loaded) {
+    console.warn('No .env file found. Using system environment variables only.');
+  }
+
+  // Validate required environment variables
+  validateRequiredEnvVars();
+}
+
+/**
+ * Validate that required environment variables are present
+ */
+function validateRequiredEnvVars(): void {
+  const requiredVars = ['DATABASE_URL'];
+  const missingVars: string[] = [];
+
+  for (const varName of requiredVars) {
+    if (!process.env[varName]) {
+      missingVars.push(varName);
+    }
+  }
+
+  if (missingVars.length > 0) {
+    console.error('Missing required environment variables:', missingVars.join(', '));
+    console.error('Please check your .env file configuration.');
+  }
+}
+
+/**
+ * Get environment variable with optional default value
+ */
+export function getEnvVar(name: string, defaultValue?: string): string {
+  const value = process.env[name];
+  
+  if (value === undefined) {
+    if (defaultValue !== undefined) {
+      return defaultValue;
+    }
+    throw new Error(`Environment variable ${name} is not defined`);
+  }
+  
+  return value;
+}
+
+/**
+ * Get environment variable as number
+ */
+export function getEnvVarAsNumber(name: string, defaultValue?: number): number {
+  const value = process.env[name];
+  
+  if (value === undefined) {
+    if (defaultValue !== undefined) {
+      return defaultValue;
+    }
+    throw new Error(`Environment variable ${name} is not defined`);
+  }
+  
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed)) {
+    throw new Error(`Environment variable ${name} is not a valid number: ${value}`);
+  }
+  
+  return parsed;
+}
+
+/**
+ * Get environment variable as boolean
+ */
+export function getEnvVarAsBoolean(name: string, defaultValue?: boolean): boolean {
+  const value = process.env[name];
+  
+  if (value === undefined) {
+    if (defaultValue !== undefined) {
+      return defaultValue;
+    }
+    throw new Error(`Environment variable ${name} is not defined`);
+  }
+  
+  return value.toLowerCase() === 'true' || value === '1';
+}

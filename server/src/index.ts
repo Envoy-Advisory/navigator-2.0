@@ -3,16 +3,23 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User } from './database';
+import { loadEnvironment, getEnvVar, getEnvVarAsNumber } from './env';
+
+// Load environment variables first
+loadEnvironment();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
-
-// Middleware
-app.use(cors());
-app.use(express.json());
+const PORT = getEnvVarAsNumber('PORT', 5000);
 
 // JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
+
+// Middleware
+app.use(cors({
+  origin: getEnvVar('CLIENT_URL', 'http://localhost:5173'),
+  credentials: true
+}));
+app.use(express.json());
 
 // Types
 interface JWTPayload {
@@ -26,20 +33,8 @@ interface AuthenticatedRequest extends Request {
   headers: any;
 }
 
-interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  organization?: string;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
 // Register endpoint
-app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Response) => {
+app.post('/api/register', async (req: Request, res: Response) => {
   try {
     const { name, email, password, organization } = req.body;
 
@@ -97,7 +92,7 @@ app.post('/api/register', async (req: Request<{}, {}, RegisterRequest>, res: Res
 });
 
 // Login endpoint
-app.post('/api/login', async (req: Request<{}, {}, LoginRequest>, res: Response) => {
+app.post('/api/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 

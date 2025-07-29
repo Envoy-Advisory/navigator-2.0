@@ -1,4 +1,3 @@
-
 {
   "name": "fair-chance-navigator-fullstack",
   "version": "1.0.0",
@@ -46,5 +45,9 @@
   },
   "devDependencies": {
     "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "ts-node": "^10.9.2"
   }
 }
