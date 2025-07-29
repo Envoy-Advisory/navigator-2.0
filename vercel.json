@@ -3,22 +3,16 @@
   "builds": [
     {
       "src": "server/src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "server/prisma/**",
-          "server/src/**",
-          "server/package.json",
-          "server/tsconfig.json"
-        ]
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "client/package.json",
-      "use": "@vercel/static-build"
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/dist"
+      }
     }
   ],
-  "outputDirectory": "client/dist",
   "routes": [
     {
       "src": "/api/(.*)",
@@ -26,12 +20,9 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/$1"
+      "dest": "/client/dist/index.html"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
   "buildCommand": "cd client && npm run build && cd ../server && npm run build"
 }

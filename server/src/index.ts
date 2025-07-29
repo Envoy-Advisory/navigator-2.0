@@ -188,21 +188,8 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`Server running on port ${PORT}`);
-  await initializeDatabase();
-});
+// Initialize database on startup
+initializeDatabase().catch(console.error);
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down server...');
-  await closeDatabase();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('Shutting down server...');
-  await closeDatabase();
-  process.exit(0);
-});
+// For Vercel serverless deployment
+export default app;
