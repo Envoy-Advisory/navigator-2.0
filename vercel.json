@@ -20,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/index.html"
     }
   ],
   "installCommand": "npm install && cd client && npm install && cd ../server && npm install",
