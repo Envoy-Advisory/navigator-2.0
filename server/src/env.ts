@@ -54,7 +54,7 @@ export function loadEnvironment(): void {
 
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
-    console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
+    //console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
   }
 
   // Validate required environment variables
