@@ -10,6 +10,7 @@ import fs from 'fs';
  */
 export function loadEnvironment(): void {
   const nodeEnv = process.env.NODE_ENV || 'local';
+  console.log(`Loading environment for NODE_ENV: ${nodeEnv}`);
   
   // Define possible .env file paths in order of priority
   const envFiles = [
@@ -23,6 +24,7 @@ export function loadEnvironment(): void {
   // Try to load environment files in order of priority
   for (const envFile of envFiles) {
     const envPath = path.resolve(process.cwd(), envFile);
+    console.log(`Checking for env file: ${envPath}`);
     
     if (fs.existsSync(envPath)) {
       console.log(`Loading environment variables from: ${envFile}`);
@@ -36,11 +38,14 @@ export function loadEnvironment(): void {
         loaded = true;
         break;
       }
+    } else {
+      console.log(`Env file not found: ${envPath}`);
     }
   }
 
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
+    console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV')));
   }
 
   // Validate required environment variables
@@ -63,6 +68,10 @@ function validateRequiredEnvVars(): void {
   if (missingVars.length > 0) {
     console.error('Missing required environment variables:', missingVars.join(', '));
     console.error('Please check your .env file configuration.');
+    console.error('Current working directory:', process.cwd());
+    console.error('Current NODE_ENV:', process.env.NODE_ENV);
+  } else {
+    console.log('All required environment variables are present');
   }
 }
 
