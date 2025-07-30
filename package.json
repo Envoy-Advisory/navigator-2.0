@@ -51,5 +51,8 @@
     "@types/node": "^24.1.0",
     "@types/pg": "^8.15.5",
     "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1"
   }
 }
