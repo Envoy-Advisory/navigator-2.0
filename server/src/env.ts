@@ -1,7 +1,5 @@
 
 import { config } from 'dotenv';
-import path from 'path';
-import fs from 'fs';
 
 /**
  * Load environment variables from .env file
@@ -41,13 +39,8 @@ export function loadEnvironment(): void {
 
   // Try to load environment files in order of priority
   for (const envFile of envFiles) {
-    const envPath = path.resolve(process.cwd(), envFile);
-    console.log(`Checking for env file: ${envPath}`);
-    
-    if (fs.existsSync(envPath)) {
-      console.log(`Loading environment variables from: ${envFile}`);
-      
-      const result = config({ path: envPath });
+
+    const result = config({ path: envFile });
       
       if (result.error) {
         console.error(`Error loading ${envFile}:`, result.error);
@@ -56,21 +49,12 @@ export function loadEnvironment(): void {
         loaded = true;
         break;
       }
-    } else {
-      console.log(`Env file not found: ${envPath}`);
-    }
+    
   }
 
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
     console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
-    
-    // If we're in Vercel and no .env file was found, try to load from Vercel environment variables
-    if (vercelEnv) {
-      console.log('Attempting to load from Vercel environment variables...');
-      // The environment variables should already be available in process.env
-      // Just validate that they exist
-    }
   }
 
   // Validate required environment variables
@@ -96,11 +80,6 @@ function validateRequiredEnvVars(): void {
     console.error('Current working directory:', process.cwd());
     console.error('Current NODE_ENV:', process.env.NODE_ENV);
     console.error('Current VERCEL_ENV:', process.env.VERCEL_ENV);
-    
-    // For Vercel deployments, suggest adding environment variables
-    if (process.env.VERCEL_ENV) {
-      console.error('For Vercel deployments, please add DATABASE_URL to your Vercel project environment variables.');
-    }
   } else {
     console.log('All required environment variables are present');
   }
