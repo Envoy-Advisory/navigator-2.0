@@ -9,11 +9,29 @@ import fs from 'fs';
  * and populate process.env with the values
  */
 export function loadEnvironment(): void {
+  // Check Vercel environment first
+  const vercelEnv = process.env.VERCEL_ENV;
   const nodeEnv = process.env.NODE_ENV || 'local';
-  console.log(`Loading environment for NODE_ENV: ${nodeEnv}`);
+  
+  console.log(`Vercel Environment: ${vercelEnv}`);
+  console.log(`Node Environment: ${nodeEnv}`);
+  
+  // Determine which environment file to load
+  let targetEnv = nodeEnv;
+  
+  if (vercelEnv === 'preview') {
+    targetEnv = 'dev'; // Use .env.dev for preview deployments
+  } else if (vercelEnv === 'production') {
+    targetEnv = 'prod'; // Use .env.prod for production deployments
+  } else if (vercelEnv === 'development') {
+    targetEnv = 'dev'; // Use .env.dev for development deployments
+  }
+  
+  console.log(`Loading environment for target: ${targetEnv}`);
   
   // Define possible .env file paths in order of priority
   const envFiles = [
+    `.env.${targetEnv}`,
     `.env.${nodeEnv}`,
     '.env.local',
     '.env'
@@ -45,7 +63,7 @@ export function loadEnvironment(): void {
 
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
-    console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV')));
+    console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
   }
 
   // Validate required environment variables
@@ -70,6 +88,7 @@ function validateRequiredEnvVars(): void {
     console.error('Please check your .env file configuration.');
     console.error('Current working directory:', process.cwd());
     console.error('Current NODE_ENV:', process.env.NODE_ENV);
+    console.error('Current VERCEL_ENV:', process.env.VERCEL_ENV);
   } else {
     console.log('All required environment variables are present');
   }
