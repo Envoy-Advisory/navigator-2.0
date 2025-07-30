@@ -40,7 +40,7 @@ export function loadEnvironment(): void {
   // Try to load environment files in order of priority
   for (const envFile of envFiles) {
 
-    const result = config({ path: envFile });
+    const result = config({ path: "server/" + envFile });
       
       if (result.error) {
         console.error(`Error loading ${envFile}:`, result.error);
