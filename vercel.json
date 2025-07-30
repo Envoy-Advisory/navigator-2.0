@@ -19,6 +19,14 @@
       }
     }
   ],
+  "functions": {
+    "server/src/index.ts": {
+      "includeFiles": [
+        "server/.env.dev",
+        "server/.env"
+      ]
+    }
+  },
   "routes": [
     {
       "src": "/api/(.*)",
