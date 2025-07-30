@@ -3,10 +3,7 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User } from './database';
-import { loadEnvironment, getEnvVar, getEnvVarAsNumber } from './env';
-
-// Load environment variables first
-loadEnvironment();
+import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
 const PORT = getEnvVarAsNumber('PORT', 5000);
