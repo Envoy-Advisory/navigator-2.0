@@ -191,5 +191,13 @@ initializeDatabase().catch((error) => {
   // Don't throw here as it would prevent the app from starting
 });
 
+// Start server only if not in Vercel environment
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Environment: ${getEnvVar('NODE_ENV', 'development')}`);
+  });
+}
+
 // For Vercel serverless deployment
 export default app;
