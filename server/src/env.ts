@@ -64,6 +64,13 @@ export function loadEnvironment(): void {
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
     console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
+    
+    // If we're in Vercel and no .env file was found, try to load from Vercel environment variables
+    if (vercelEnv) {
+      console.log('Attempting to load from Vercel environment variables...');
+      // The environment variables should already be available in process.env
+      // Just validate that they exist
+    }
   }
 
   // Validate required environment variables
@@ -89,6 +96,11 @@ function validateRequiredEnvVars(): void {
     console.error('Current working directory:', process.cwd());
     console.error('Current NODE_ENV:', process.env.NODE_ENV);
     console.error('Current VERCEL_ENV:', process.env.VERCEL_ENV);
+    
+    // For Vercel deployments, suggest adding environment variables
+    if (process.env.VERCEL_ENV) {
+      console.error('For Vercel deployments, please add DATABASE_URL to your Vercel project environment variables.');
+    }
   } else {
     console.log('All required environment variables are present');
   }
