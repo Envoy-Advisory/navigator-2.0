@@ -1,7 +1,7 @@
 run = "npm run dev"
-modules = ["nodejs-20"]
-hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
-entrypoint = "src/App.tsx"
+modules = ["nodejs-20", "postgresql-16"]
+hidden = [".config", "client/tsconfig.json", "client/tsconfig.node.json", "client/vite.config.js", ".gitignore"]
+entrypoint = "client/src/App.tsx"
 
 [nix]
 channel = "stable-24_05"
@@ -11,15 +11,23 @@ language = "nodejs"
 
 [deployment]
 deploymentTarget = "static"
-build = ["npm", "run", "build"]
-publicDir = "dist"
+build = ["cd client && npm run build"]
+publicDir = "client/dist"
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
 
 [[ports]]
 localPort = 5173
 externalPort = 80
 
+[[ports]]
+localPort = 5174
+externalPort = 3000
+
 [workflows]
-runButton = "Start Development Server"
+runButton = "Restart Full Stack"
 
 [[workflows.workflow]]
 name = "Start Development Server"
@@ -28,4 +36,30 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "cd client && npm run dev"
+
+[[workflows.workflow]]
+name = "Full Stack Development"
+author = 44543348
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
+
+[[workflows.workflow]]
+name = "Restart Full Stack"
+author = 44543364
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
