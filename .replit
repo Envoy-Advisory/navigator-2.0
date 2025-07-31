@@ -1,4 +1,3 @@
-
 run = "npm run dev"
 modules = ["nodejs-20", "postgresql-16"]
 hidden = [".config", "client/tsconfig.json", "client/tsconfig.node.json", "client/vite.config.js", ".gitignore"]
