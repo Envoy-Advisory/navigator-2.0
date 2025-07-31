@@ -1,7 +1,5 @@
 
 import { config } from 'dotenv';
-import path from 'path';
-import fs from 'fs';
 
 /**
  * Load environment variables from .env file
@@ -9,10 +7,29 @@ import fs from 'fs';
  * and populate process.env with the values
  */
 export function loadEnvironment(): void {
+  // Check Vercel environment first
+  const vercelEnv = process.env.VERCEL_ENV;
   const nodeEnv = process.env.NODE_ENV || 'local';
+  
+  console.log(`Vercel Environment: ${vercelEnv}`);
+  console.log(`Node Environment: ${nodeEnv}`);
+  
+  // Determine which environment file to load
+  let targetEnv = nodeEnv;
+  
+  if (vercelEnv === 'preview') {
+    targetEnv = 'dev'; // Use .env.dev for preview deployments
+  } else if (vercelEnv === 'production') {
+    targetEnv = 'prod'; // Use .env.prod for production deployments
+  } else if (vercelEnv === 'development') {
+    targetEnv = 'dev'; // Use .env.dev for development deployments
+  }
+  
+  console.log(`Loading environment for target: ${targetEnv}`);
   
   // Define possible .env file paths in order of priority
   const envFiles = [
+    `.env.${targetEnv}`,
     `.env.${nodeEnv}`,
     '.env.local',
     '.env'
@@ -22,12 +39,8 @@ export function loadEnvironment(): void {
 
   // Try to load environment files in order of priority
   for (const envFile of envFiles) {
-    const envPath = path.resolve(process.cwd(), envFile);
-    
-    if (fs.existsSync(envPath)) {
-      console.log(`Loading environment variables from: ${envFile}`);
-      
-      const result = config({ path: envPath });
+
+    const result = config({ path: "server/" + envFile });
       
       if (result.error) {
         console.error(`Error loading ${envFile}:`, result.error);
@@ -36,11 +49,12 @@ export function loadEnvironment(): void {
         loaded = true;
         break;
       }
-    }
+    
   }
 
   if (!loaded) {
     console.warn('No .env file found. Using system environment variables only.');
+    //console.log('Available environment variables:', Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('JWT') || key.includes('NODE_ENV') || key.includes('VERCEL')));
   }
 
   // Validate required environment variables
@@ -63,6 +77,11 @@ function validateRequiredEnvVars(): void {
   if (missingVars.length > 0) {
     console.error('Missing required environment variables:', missingVars.join(', '));
     console.error('Please check your .env file configuration.');
+    console.error('Current working directory:', process.cwd());
+    console.error('Current NODE_ENV:', process.env.NODE_ENV);
+    console.error('Current VERCEL_ENV:', process.env.VERCEL_ENV);
+  } else {
+    console.log('All required environment variables are present');
   }
 }
 

@@ -3,10 +3,7 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User } from './database';
-import { loadEnvironment, getEnvVar, getEnvVarAsNumber } from './env';
-
-// Load environment variables first
-loadEnvironment();
+import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
 const PORT = getEnvVarAsNumber('PORT', 5000);
@@ -193,6 +190,14 @@ initializeDatabase().catch((error) => {
   console.error('Failed to initialize database:', error);
   // Don't throw here as it would prevent the app from starting
 });
+
+// Start server only if not in Vercel environment
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Environment: ${getEnvVar('NODE_ENV', 'development')}`);
+  });
+}
 
 // For Vercel serverless deployment
 export default app;

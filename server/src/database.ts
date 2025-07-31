@@ -1,4 +1,8 @@
 import { PrismaClient, User, Organization } from '@prisma/client';
+import { loadEnvironment } from './env';
+
+// Load environment variables first
+loadEnvironment();
 
 // Prisma client instance with proper configuration for serverless
 export const prisma = new PrismaClient({
