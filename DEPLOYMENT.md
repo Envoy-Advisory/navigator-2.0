@@ -48,27 +48,13 @@ cd fair-chance-navigator
 npm run install:all
 ```
 
-### 2. Environment-Specific Setup
 
-Choose your target environment and run the corresponding setup script:
+### 2. Configure Environment Variables
 
-```bash
-# Local Development
-./scripts/setup-local.sh
+Before running any setup scripts, create and update the appropriate environment variable files for your target environment in both `server/` and `client/` directories:
 
-# Development Server
-./scripts/setup-dev.sh
-
-# UAT Environment
-./scripts/setup-uat.sh
-
-# Production Environment
-./scripts/setup-prod.sh
-```
-
-### 3. Configure Environment Variables
-
-Edit the generated `.env` files in both `server/` and `client/` directories:
+- For local deployment, create an `.env.local` file in both `server/` and `client/` directories if it does not exist.
+- For other environments, update the corresponding `.env.dev`, `.env.uat`, or `.env.prod` files as needed.
 
 **Server Environment Variables:**
 - `DATABASE_URL`: PostgreSQL connection string
@@ -89,6 +75,26 @@ Replace `your_password` with the password you set for `navigator_user` during in
 **Client Environment Variables:**
 - `VITE_API_URL`: Backend API URL
 - `VITE_NODE_ENV`: Environment mode
+
+Make sure to set the correct values for each environment before proceeding.
+
+### 3. Environment-Specific Setup
+
+Choose your target environment and run the corresponding setup script:
+
+```bash
+# Local Development
+./scripts/setup-local.sh
+
+# Development Server
+./scripts/setup-dev.sh
+
+# UAT Environment
+./scripts/setup-uat.sh
+
+# Production Environment
+./scripts/setup-prod.sh
+```
 
 ## Running the Application
 
