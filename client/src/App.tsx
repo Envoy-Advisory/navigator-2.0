@@ -197,45 +197,91 @@ const App: React.FC = () => {
   ]);
 
   useEffect(() => {
-    // Simulate loading user data
-    setTimeout(() => {
+    // Check for existing auth token and verify it
+    const verifyToken = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const response = await fetch('/api/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setCurrentUser(data.user);
+          } else {
+            // Token is invalid, remove it
+            localStorage.removeItem('authToken');
+          }
+        } catch (error) {
+          console.error('Token verification error:', error);
+          localStorage.removeItem('authToken');
+        }
+      }
       setLoading(false);
-    }, 1000);
+    };
+
+    verifyToken();
   }, []);
 
-  const login = (email: string, password: string) => {
-    // Mock login - in real app, this would validate credentials
-    const mockUser: User = {
-      id: '1',
-      name: 'Demo User',
-      email: email,
-      role: 'employer',
-      organization: 'Demo Organization',
-      organizationId: 'org-1',
-      createdAt: new Date(),
-      lastLogin: new Date()
-    };
-    setCurrentUser(mockUser);
-    setShowLoginForm(false);
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store JWT token in localStorage
+        localStorage.setItem('authToken', data.token);
+        setCurrentUser(data.user);
+        setShowLoginForm(false);
+        alert('Login successful!');
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Network error. Please try again.');
+    }
   };
 
-  const register = (name: string, email: string, password: string, organization: string) => {
-    // Mock registration
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: 'employer',
-      organization,
-      organizationId: 'org-' + Date.now(),
-      createdAt: new Date(),
-      lastLogin: new Date()
-    };
-    setCurrentUser(newUser);
-    setShowRegistrationForm(false);
+  const register = async (name: string, email: string, password: string, organization: string) => {
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, organization }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store JWT token in localStorage
+        localStorage.setItem('authToken', data.token);
+        setCurrentUser(data.user);
+        setShowRegistrationForm(false);
+        alert('Registration successful!');
+      } else {
+        alert(data.error || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Network error. Please try again.');
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('authToken');
     setCurrentUser(null);
   };
 
@@ -1030,16 +1076,22 @@ const AdminPanel: React.FC<{
 };
 
 const LoginModal: React.FC<{
-  onLogin: (email: string, password: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
   onClose: () => void;
   onSwitchToRegister: () => void;
 }> = ({ onLogin, onClose, onSwitchToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(email, password);
+    setIsLoading(true);
+    try {
+      await onLogin(email, password);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -1062,7 +1114,9 @@ const LoginModal: React.FC<{
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit" className="auth-submit">Login</button>
+          <button type="submit" className="auth-submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
         </form>
         <p className="auth-switch">
           Don't have an account? 
@@ -1074,7 +1128,7 @@ const LoginModal: React.FC<{
 };
 
 const RegistrationModal: React.FC<{
-  onRegister: (name: string, email: string, password: string, organization: string) => void;
+  onRegister: (name: string, email: string, password: string, organization: string) => Promise<void>;
   onClose: () => void;
   onSwitchToLogin: () => void;
 }> = ({ onRegister, onClose, onSwitchToLogin }) => {
@@ -1084,10 +1138,16 @@ const RegistrationModal: React.FC<{
     password: '',
     organization: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onRegister(formData.name, formData.email, formData.password, formData.organization);
+    setIsLoading(true);
+    try {
+      await onRegister(formData.name, formData.email, formData.password, formData.organization);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -1124,7 +1184,9 @@ const RegistrationModal: React.FC<{
             onChange={(e) => setFormData({...formData, organization: e.target.value})}
             required
           />
-          <button type="submit" className="auth-submit">Create Account</button>
+          <button type="submit" className="auth-submit" disabled={isLoading}>
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
         </form>
         <p className="auth-switch">
           Already have an account? 

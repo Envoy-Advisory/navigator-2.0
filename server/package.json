@@ -1,0 +1,47 @@
+{
+  "name": "fair-chance-navigator-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Fair Chance Navigator 2.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev:local": "NODE_ENV=local nodemon --exec ts-node src/index.ts",
+    "dev:dev": "NODE_ENV=development nodemon --exec ts-node src/index.ts",
+    "dev:uat": "NODE_ENV=uat nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "build:prod": "NODE_ENV=production tsc",
+    "start:local": "NODE_ENV=local node dist/index.js",
+    "start:dev": "NODE_ENV=development node dist/index.js",
+    "start:uat": "NODE_ENV=uat node dist/index.js",
+    "start:prod": "NODE_ENV=production node dist/index.js",
+    "watch": "tsc --watch",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma db push --force-reset",
+    "db:seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "typescript": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.9",
+    "@types/pg": "^8.15.5",
+    "nodemon": "^3.0.1",
+    "prisma": "^6.12.0",
+    "ts-node": "^10.9.0"
+  }
+}
