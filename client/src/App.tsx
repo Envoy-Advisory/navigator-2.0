@@ -986,512 +986,90 @@ const TeamCollaboration: React.FC<{ currentUser: User }> = ({ currentUser }) => 
   );
 };
 
-interface CMSModule {
-  id: number;
-  moduleNumber: number;
-  moduleName: string;
-  created_at: string;
-  updated_at: string;
-  articles: CMSArticle[];
-}
-
-interface CMSArticle {
-  id: number;
-  moduleId: number;
-  articleName: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  module?: CMSModule;
-}
-
 const AdminPanel: React.FC<{
   modules: Module[];
   setModules: React.Dispatch<React.SetStateAction<Module[]>>;
 }> = ({ modules, setModules }) => {
-  const [cmsModules, setCmsModules] = useState<CMSModule[]>([]);
-  const [selectedModule, setSelectedModule] = useState<CMSModule | null>(null);
-  const [editingModule, setEditingModule] = useState<CMSModule | null>(null);
-  const [editingArticle, setEditingArticle] = useState<CMSArticle | null>(null);
-  const [showModuleForm, setShowModuleForm] = useState(false);
-  const [showArticleForm, setShowArticleForm] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Fetch modules on component mount
-  useEffect(() => {
-    fetchModules();
-  }, []);
-
-  const fetchModules = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/modules', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCmsModules(data);
-      } else {
-        alert('Failed to fetch modules');
-      }
-    } catch (error) {
-      console.error('Error fetching modules:', error);
-      alert('Network error');
-    }
-  };
-
-  const handleCreateModule = async (moduleData: { moduleNumber: number; moduleName: string }) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/modules', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(moduleData),
-      });
-
-      if (response.ok) {
-        fetchModules();
-        setShowModuleForm(false);
-        alert('Module created successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to create module');
-      }
-    } catch (error) {
-      console.error('Error creating module:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateModule = async (id: number, moduleData: { moduleNumber: number; moduleName: string }) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/modules/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(moduleData),
-      });
-
-      if (response.ok) {
-        fetchModules();
-        setEditingModule(null);
-        alert('Module updated successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to update module');
-      }
-    } catch (error) {
-      console.error('Error updating module:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteModule = async (id: number, moduleName: string) => {
-    if (!confirm(`Are you sure you want to delete "${moduleName}"? This will also delete all articles in this module.`)) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/modules/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        fetchModules();
-        if (selectedModule?.id === id) {
-          setSelectedModule(null);
-        }
-        alert('Module deleted successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to delete module');
-      }
-    } catch (error) {
-      console.error('Error deleting module:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateArticle = async (articleData: { moduleId: number; articleName: string; content: string }) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('/api/articles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(articleData),
-      });
-
-      if (response.ok) {
-        fetchModules();
-        setShowArticleForm(false);
-        alert('Article created successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to create article');
-      }
-    } catch (error) {
-      console.error('Error creating article:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateArticle = async (id: number, articleData: { articleName: string; content: string }) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/articles/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(articleData),
-      });
-
-      if (response.ok) {
-        fetchModules();
-        setEditingArticle(null);
-        alert('Article updated successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to update article');
-      }
-    } catch (error) {
-      console.error('Error updating article:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteArticle = async (id: number, articleName: string) => {
-    if (!confirm(`Are you sure you want to delete "${articleName}"?`)) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/articles/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        fetchModules();
-        alert('Article deleted successfully!');
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to delete article');
-      }
-    } catch (error) {
-      console.error('Error deleting article:', error);
-      alert('Network error');
-    } finally {
-      setLoading(false);
+  const handleDuplicateModule = (moduleId: string) => {
+    const moduleToClone = modules.find(m => m.id === moduleId);
+    if (moduleToClone) {
+      const clonedModule: Module = {
+        ...moduleToClone,
+        id: `${moduleId}-copy-${Date.now()}`,
+        title: `${moduleToClone.title} (Copy)`,
+        completed: false,
+        organizationType: 'custom',
+        cohortId: `cohort-${Date.now()}`
+      };
+      setModules(prev => [...prev, clonedModule]);
+      alert('Module duplicated successfully!');
     }
   };
 
   return (
     <div className="admin-panel">
-      <h2>Content Management Admin</h2>
-      <p>Manage modules and articles for your application</p>
+      <h2>Admin Panel</h2>
+      <p>Manage content, users, and system settings</p>
 
-      <div className="admin-content">
-        <div className="modules-section">
-          <div className="section-header">
-            <h3>Modules</h3>
-            <button 
-              className="create-btn"
-              onClick={() => setShowModuleForm(true)}
-              disabled={loading}
-            >
-              Create Module
-            </button>
+      <div className="admin-sections">
+        <div className="admin-section">
+          <h3>Content Management</h3>
+          <div className="admin-actions">
+            <button className="admin-btn">Create New Module</button>
+            <button className="admin-btn">Manage Worksheets</button>
+            <button className="admin-btn">Upload Resources</button>
           </div>
+        </div>
 
-          <div className="modules-list">
-            {cmsModules.map(module => (
-              <div 
-                key={module.id} 
-                className={`module-item ${selectedModule?.id === module.id ? 'selected' : ''}`}
-                onClick={() => setSelectedModule(module)}
-              >
-                <div className="module-info">
-                  <h4>Module {module.moduleNumber}: {module.moduleName}</h4>
-                  <p>{module.articles.length} articles</p>
-                </div>
-                <div className="module-actions">
-                  <button 
-                    className="edit-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingModule(module);
-                    }}
-                    disabled={loading}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteModule(module.id, module.moduleName);
-                    }}
-                    disabled={loading}
-                  >
-                    Delete
-                  </button>
-                </div>
+        <div className="admin-section">
+          <h3>Module Duplication</h3>
+          <p>Create copies of modules for different organization types or cohorts</p>
+          <div className="module-list">
+            {modules.slice(0, 3).map(module => (
+              <div key={module.id} className="admin-module-item">
+                <span>{module.title}</span>
+                <button 
+                  onClick={() => handleDuplicateModule(module.id)}
+                  className="duplicate-btn"
+                >
+                  Duplicate
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="articles-section">
-          <div className="section-header">
-            <h3>
-              Articles
-              {selectedModule && ` - Module ${selectedModule.moduleNumber}: ${selectedModule.moduleName}`}
-            </h3>
-            {selectedModule && (
-              <button 
-                className="create-btn"
-                onClick={() => setShowArticleForm(true)}
-                disabled={loading}
-              >
-                Create Article
-              </button>
-            )}
+        <div className="admin-section">
+          <h3>User Management</h3>
+          <div className="admin-stats">
+            <div className="admin-stat">
+              <span className="stat-number">150</span>
+              <span className="stat-label">Total Users</span>
+            </div>
+            <div className="admin-stat">
+              <span className="stat-number">25</span>
+              <span className="stat-label">Organizations</span>
+            </div>
+            <div className="admin-stat">
+              <span className="stat-number">85%</span>
+              <span className="stat-label">Completion Rate</span>
+            </div>
           </div>
-
-          {selectedModule ? (
-            <div className="articles-list">
-              {selectedModule.articles.map(article => (
-                <div key={article.id} className="article-item">
-                  <div className="article-info">
-                    <h4>{article.articleName}</h4>
-                    <p className="article-preview">
-                      {article.content.substring(0, 100)}
-                      {article.content.length > 100 ? '...' : ''}
-                    </p>
-                  </div>
-                  <div className="article-actions">
-                    <button 
-                      className="edit-btn"
-                      onClick={() => setEditingArticle(article)}
-                      disabled={loading}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteArticle(article.id, article.articleName)}
-                      disabled={loading}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-              
-              {selectedModule.articles.length === 0 && (
-                <div className="empty-state">
-                  <p>No articles in this module yet.</p>
-                  <button 
-                    className="create-btn"
-                    onClick={() => setShowArticleForm(true)}
-                  >
-                    Create First Article
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <p>Select a module to view its articles</p>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Module Form Modal */}
-      {(showModuleForm || editingModule) && (
-        <ModuleForm
-          module={editingModule}
-          onSave={editingModule ? 
-            (data) => handleUpdateModule(editingModule.id, data) : 
-            handleCreateModule
-          }
-          onCancel={() => {
-            setShowModuleForm(false);
-            setEditingModule(null);
-          }}
-          loading={loading}
-        />
-      )}
-
-      {/* Article Form Modal */}
-      {(showArticleForm || editingArticle) && selectedModule && (
-        <ArticleForm
-          article={editingArticle}
-          moduleId={selectedModule.id}
-          onSave={editingArticle ? 
-            (data) => handleUpdateArticle(editingArticle.id, data) : 
-            (data) => handleCreateArticle({ ...data, moduleId: selectedModule.id })
-          }
-          onCancel={() => {
-            setShowArticleForm(false);
-            setEditingArticle(null);
-          }}
-          loading={loading}
-        />
-      )}
-    </div>
-  );
-};
-
-const ModuleForm: React.FC<{
-  module?: CMSModule | null;
-  onSave: (data: { moduleNumber: number; moduleName: string }) => void;
-  onCancel: () => void;
-  loading: boolean;
-}> = ({ module, onSave, onCancel, loading }) => {
-  const [formData, setFormData] = useState({
-    moduleNumber: module?.moduleNumber || 1,
-    moduleName: module?.moduleName || ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.moduleName.trim()) {
-      alert('Module name is required');
-      return;
-    }
-    onSave(formData);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h3>{module ? 'Edit Module' : 'Create Module'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Module Number:</label>
-            <input
-              type="number"
-              value={formData.moduleNumber}
-              onChange={(e) => setFormData({...formData, moduleNumber: parseInt(e.target.value) || 1})}
-              min="1"
-              required
-            />
+        <div className="admin-section">
+          <h3>Embed Settings</h3>
+          <p>Generate embed codes for partner sites</p>
+          <div className="embed-generator">
+            <select className="embed-select">
+              <option>Select Course to Embed</option>
+              <option>Complete Program</option>
+              <option>Planning Module</option>
+              <option>Policies Module</option>
+            </select>
+            <button className="generate-btn">Generate Embed Code</button>
           </div>
-          <div className="form-group">
-            <label>Module Name:</label>
-            <input
-              type="text"
-              value={formData.moduleName}
-              onChange={(e) => setFormData({...formData, moduleName: e.target.value})}
-              required
-            />
-          </div>
-          <div className="form-actions">
-            <button type="button" onClick={onCancel} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const ArticleForm: React.FC<{
-  article?: CMSArticle | null;
-  moduleId: number;
-  onSave: (data: { articleName: string; content: string }) => void;
-  onCancel: () => void;
-  loading: boolean;
-}> = ({ article, onSave, onCancel, loading }) => {
-  const [formData, setFormData] = useState({
-    articleName: article?.articleName || '',
-    content: article?.content || ''
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.articleName.trim()) {
-      alert('Article name is required');
-      return;
-    }
-    onSave(formData);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-        <h3>{article ? 'Edit Article' : 'Create Article'}</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Article Name:</label>
-            <input
-              type="text"
-              value={formData.articleName}
-              onChange={(e) => setFormData({...formData, articleName: e.target.value})}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Content:</label>
-            <textarea
-              value={formData.content}
-              onChange={(e) => setFormData({...formData, content: e.target.value})}
-              rows={15}
-              placeholder="Enter article content..."
-            />
-          </div>
-          <div className="form-actions">
-            <button type="button" onClick={onCancel} disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );
