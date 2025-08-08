@@ -185,6 +185,134 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Import the new services
+import { ModuleService, ArticleService } from './database';
+
+// Modules routes
+app.get('/api/modules', async (req, res) => {
+  try {
+    const modules = await ModuleService.getAll();
+    res.json(modules);
+  } catch (error) {
+    console.error('Error fetching modules:', error);
+    res.status(500).json({ error: 'Failed to fetch modules' });
+  }
+});
+
+app.get('/api/modules/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const module = await ModuleService.findById(id);
+    if (!module) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+    res.json(module);
+  } catch (error) {
+    console.error('Error fetching module:', error);
+    res.status(500).json({ error: 'Failed to fetch module' });
+  }
+});
+
+app.post('/api/modules', async (req, res) => {
+  try {
+    const { moduleNumber, moduleName } = req.body;
+    if (!moduleNumber || !moduleName) {
+      return res.status(400).json({ error: 'Module number and name are required' });
+    }
+    const module = await ModuleService.create({ moduleNumber, moduleName });
+    res.status(201).json(module);
+  } catch (error) {
+    console.error('Error creating module:', error);
+    res.status(500).json({ error: 'Failed to create module' });
+  }
+});
+
+app.put('/api/modules/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { moduleNumber, moduleName } = req.body;
+    const module = await ModuleService.update(id, { moduleNumber, moduleName });
+    res.json(module);
+  } catch (error) {
+    console.error('Error updating module:', error);
+    res.status(500).json({ error: 'Failed to update module' });
+  }
+});
+
+app.delete('/api/modules/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await ModuleService.delete(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting module:', error);
+    res.status(500).json({ error: 'Failed to delete module' });
+  }
+});
+
+// Articles routes
+app.get('/api/modules/:moduleId/articles', async (req, res) => {
+  try {
+    const moduleId = parseInt(req.params.moduleId);
+    const articles = await ArticleService.getByModuleId(moduleId);
+    res.json(articles);
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ error: 'Failed to fetch articles' });
+  }
+});
+
+app.get('/api/articles/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const article = await ArticleService.findById(id);
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+    res.json(article);
+  } catch (error) {
+    console.error('Error fetching article:', error);
+    res.status(500).json({ error: 'Failed to fetch article' });
+  }
+});
+
+app.post('/api/articles', async (req, res) => {
+  try {
+    const { moduleId, articleName, content } = req.body;
+    if (!moduleId || !articleName || !content) {
+      return res.status(400).json({ error: 'Module ID, article name, and content are required' });
+    }
+    const article = await ArticleService.create({ moduleId, articleName, content });
+    res.status(201).json(article);
+  } catch (error) {
+    console.error('Error creating article:', error);
+    res.status(500).json({ error: 'Failed to create article' });
+  }
+});
+
+app.put('/api/articles/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { articleName, content } = req.body;
+    const article = await ArticleService.update(id, { articleName, content });
+    res.json(article);
+  } catch (error) {
+    console.error('Error updating article:', error);
+    res.status(500).json({ error: 'Failed to update article' });
+  }
+});
+
+app.delete('/api/articles/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await ArticleService.delete(id);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting article:', error);
+    res.status(500).json({ error: 'Failed to delete article' });
+  }
+});
+
 // Initialize database on startup
 initializeDatabase().catch((error) => {
   console.error('Failed to initialize database:', error);
