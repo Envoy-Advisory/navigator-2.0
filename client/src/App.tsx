@@ -62,6 +62,25 @@ interface WorksheetResponse {
   lastModified: Date;
 }
 
+interface AdminModule {
+  id: number;
+  moduleNumber: number;
+  moduleName: string;
+  articles: AdminArticle[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface AdminArticle {
+  id: number;
+  moduleId: number;
+  articleName: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  module?: AdminModule;
+}
+
 interface Testimonial {
   id: string;
   name: string;
@@ -323,6 +342,9 @@ const App: React.FC = () => {
           } />
           <Route path="/admin" element={
             currentUser?.role === 'admin' ? <AdminPanel modules={modules} setModules={setModules} /> : <Redirect to="/" />
+          } />
+          <Route path="/admin/console" element={
+            currentUser?.role === 'admin' ? <AdminConsole currentUser={currentUser} /> : <Redirect to="/" />
           } />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -1015,7 +1037,7 @@ const AdminPanel: React.FC<{
         <div className="admin-section">
           <h3>Content Management</h3>
           <div className="admin-actions">
-            <button className="admin-btn">Create New Module</button>
+            <Link to="/admin/console" className="admin-btn">Admin Console</Link>
             <button className="admin-btn">Manage Worksheets</button>
             <button className="admin-btn">Upload Resources</button>
           </div>
@@ -1329,6 +1351,382 @@ const EmbeddedContent: React.FC = () => {
           <a href="/" className="embed-link">Visit Fair Chance Navigator 2.0</a>
         </div>
       </div>
+    </div>
+  );
+};
+
+const AdminConsole: React.FC<{ currentUser: User }> = ({ currentUser }) => {
+  const [modules, setModules] = useState<AdminModule[]>([]);
+  const [selectedModule, setSelectedModule] = useState<AdminModule | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editingModule, setEditingModule] = useState<AdminModule | null>(null);
+  const [editingArticle, setEditingArticle] = useState<AdminArticle | null>(null);
+  const [showModuleForm, setShowModuleForm] = useState(false);
+  const [showArticleForm, setShowArticleForm] = useState(false);
+
+  const [moduleForm, setModuleForm] = useState({
+    moduleNumber: '',
+    moduleName: ''
+  });
+
+  const [articleForm, setArticleForm] = useState({
+    articleName: '',
+    content: ''
+  });
+
+  useEffect(() => {
+    fetchModules();
+  }, []);
+
+  const fetchModules = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/modules', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setModules(data);
+      } else {
+        alert('Failed to fetch modules');
+      }
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      alert('Error fetching modules');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/modules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(moduleForm),
+      });
+
+      if (response.ok) {
+        setModuleForm({ moduleNumber: '', moduleName: '' });
+        setShowModuleForm(false);
+        fetchModules();
+      } else {
+        alert('Failed to create module');
+      }
+    } catch (error) {
+      console.error('Error creating module:', error);
+      alert('Error creating module');
+    }
+  };
+
+  const handleUpdateModule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingModule) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/modules/${editingModule.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(moduleForm),
+      });
+
+      if (response.ok) {
+        setEditingModule(null);
+        setModuleForm({ moduleNumber: '', moduleName: '' });
+        fetchModules();
+      } else {
+        alert('Failed to update module');
+      }
+    } catch (error) {
+      console.error('Error updating module:', error);
+      alert('Error updating module');
+    }
+  };
+
+  const handleDeleteModule = async (moduleId: number) => {
+    if (!confirm('Are you sure you want to delete this module? This will also delete all its articles.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/modules/${moduleId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchModules();
+        if (selectedModule?.id === moduleId) {
+          setSelectedModule(null);
+        }
+      } else {
+        alert('Failed to delete module');
+      }
+    } catch (error) {
+      console.error('Error deleting module:', error);
+      alert('Error deleting module');
+    }
+  };
+
+  const handleCreateArticle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedModule) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/articles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...articleForm,
+          moduleId: selectedModule.id
+        }),
+      });
+
+      if (response.ok) {
+        setArticleForm({ articleName: '', content: '' });
+        setShowArticleForm(false);
+        fetchModules();
+      } else {
+        alert('Failed to create article');
+      }
+    } catch (error) {
+      console.error('Error creating article:', error);
+      alert('Error creating article');
+    }
+  };
+
+  const handleUpdateArticle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingArticle) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/articles/${editingArticle.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(articleForm),
+      });
+
+      if (response.ok) {
+        setEditingArticle(null);
+        setArticleForm({ articleName: '', content: '' });
+        fetchModules();
+      } else {
+        alert('Failed to update article');
+      }
+    } catch (error) {
+      console.error('Error updating article:', error);
+      alert('Error updating article');
+    }
+  };
+
+  const handleDeleteArticle = async (articleId: number) => {
+    if (!confirm('Are you sure you want to delete this article?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/articles/${articleId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchModules();
+      } else {
+        alert('Failed to delete article');
+      }
+    } catch (error) {
+      console.error('Error deleting article:', error);
+      alert('Error deleting article');
+    }
+  };
+
+  const startEditModule = (module: AdminModule) => {
+    setEditingModule(module);
+    setModuleForm({
+      moduleNumber: module.moduleNumber.toString(),
+      moduleName: module.moduleName
+    });
+  };
+
+  const startEditArticle = (article: AdminArticle) => {
+    setEditingArticle(article);
+    setArticleForm({
+      articleName: article.articleName,
+      content: article.content
+    });
+  };
+
+  if (loading) {
+    return <div className="loading-screen"><div className="spinner"></div><p>Loading admin console...</p></div>;
+  }
+
+  return (
+    <div className="admin-console">
+      <div className="console-header">
+        <h1>Content Management Console</h1>
+        <Link to="/admin" className="back-btn">← Back to Admin Panel</Link>
+      </div>
+
+      <div className="console-layout">
+        <div className="modules-panel">
+          <div className="panel-header">
+            <h2>Modules</h2>
+            <button 
+              className="create-btn" 
+              onClick={() => setShowModuleForm(true)}
+            >
+              + Create Module
+            </button>
+          </div>
+
+          <div className="modules-list">
+            {modules.map(module => (
+              <div 
+                key={module.id} 
+                className={`module-item ${selectedModule?.id === module.id ? 'selected' : ''}`}
+                onClick={() => setSelectedModule(module)}
+              >
+                <div className="module-info">
+                  <h3>Module {module.moduleNumber}: {module.moduleName}</h3>
+                  <p>{module.articles.length} articles</p>
+                </div>
+                <div className="module-actions">
+                  <button onClick={(e) => { e.stopPropagation(); startEditModule(module); }}>Edit</button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteModule(module.id); }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="articles-panel">
+          {selectedModule ? (
+            <>
+              <div className="panel-header">
+                <h2>Articles for Module {selectedModule.moduleNumber}</h2>
+                <button 
+                  className="create-btn" 
+                  onClick={() => setShowArticleForm(true)}
+                >
+                  + Create Article
+                </button>
+              </div>
+
+              <div className="articles-list">
+                {selectedModule.articles.map(article => (
+                  <div key={article.id} className="article-item">
+                    <div className="article-info">
+                      <h4>{article.articleName}</h4>
+                      <p>{article.content.substring(0, 100)}...</p>
+                    </div>
+                    <div className="article-actions">
+                      <button onClick={() => startEditArticle(article)}>Edit</button>
+                      <button onClick={() => handleDeleteArticle(article.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="no-selection">
+              <p>Select a module to view and manage its articles</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Module Form Modal */}
+      {(showModuleForm || editingModule) && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>{editingModule ? 'Edit Module' : 'Create New Module'}</h3>
+            <form onSubmit={editingModule ? handleUpdateModule : handleCreateModule}>
+              <input
+                type="number"
+                placeholder="Module Number"
+                value={moduleForm.moduleNumber}
+                onChange={(e) => setModuleForm({...moduleForm, moduleNumber: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Module Name"
+                value={moduleForm.moduleName}
+                onChange={(e) => setModuleForm({...moduleForm, moduleName: e.target.value})}
+                required
+              />
+              <div className="form-actions">
+                <button type="submit">{editingModule ? 'Update' : 'Create'}</button>
+                <button type="button" onClick={() => {
+                  setShowModuleForm(false);
+                  setEditingModule(null);
+                  setModuleForm({ moduleNumber: '', moduleName: '' });
+                }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Article Form Modal */}
+      {(showArticleForm || editingArticle) && (
+        <div className="modal-overlay">
+          <div className="modal-content article-modal">
+            <h3>{editingArticle ? 'Edit Article' : 'Create New Article'}</h3>
+            <form onSubmit={editingArticle ? handleUpdateArticle : handleCreateArticle}>
+              <input
+                type="text"
+                placeholder="Article Name"
+                value={articleForm.articleName}
+                onChange={(e) => setArticleForm({...articleForm, articleName: e.target.value})}
+                required
+              />
+              <textarea
+                placeholder="Article Content"
+                value={articleForm.content}
+                onChange={(e) => setArticleForm({...articleForm, content: e.target.value})}
+                rows={10}
+                required
+              />
+              <div className="form-actions">
+                <button type="submit">{editingArticle ? 'Update' : 'Create'}</button>
+                <button type="button" onClick={() => {
+                  setShowArticleForm(false);
+                  setEditingArticle(null);
+                  setArticleForm({ articleName: '', content: '' });
+                }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
