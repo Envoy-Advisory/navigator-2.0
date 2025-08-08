@@ -1,4 +1,4 @@
-import { PrismaClient, User, Organization, Module, Article } from '@prisma/client';
+import { PrismaClient, User, Organization } from '@prisma/client';
 import { loadEnvironment } from './env';
 
 // Load environment variables first
@@ -15,14 +15,14 @@ export const prisma = new PrismaClient({
 });
 
 // Export types from Prisma
-export type { User, Organization, Module, Article };
+export type { User, Organization };
 
 // Initialize database connection
 export async function initializeDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('Database connected with Prisma');
-
+    
     // Test the connection
     await prisma.$queryRaw`SELECT 1`;
     console.log('Database connection test successful');
@@ -127,83 +127,6 @@ export class OrganizationService {
       });
     } catch (error) {
       console.error('Error finding organization by id:', error);
-      throw error;
-    }
-  }
-}
-
-// Module operations
-export class ModuleService {
-  static async create(name: string, organizationId: number): Promise<{ id: number }> {
-    try {
-      const module = await prisma.module.create({
-        data: { name, organization_id: organizationId }
-      });
-      return { id: module.id };
-    } catch (error) {
-      console.error('Error creating module:', error);
-      throw error;
-    }
-  }
-
-  static async findById(id: number): Promise<Module | null> {
-    try {
-      return await prisma.module.findUnique({
-        where: { id },
-        include: { articles: true }
-      });
-    } catch (error) {
-      console.error('Error finding module by id:', error);
-      throw error;
-    }
-  }
-
-  static async findByOrganizationId(organizationId: number): Promise<Module[]> {
-    try {
-      return await prisma.module.findMany({
-        where: { organization_id: organizationId },
-        include: { articles: true }
-      });
-    } catch (error) {
-      console.error('Error finding modules by organization ID:', error);
-      throw error;
-    }
-  }
-}
-
-// Article operations
-export class ArticleService {
-  static async create(title: string, content: string, moduleId: number): Promise<{ id: number }> {
-    try {
-      const article = await prisma.article.create({
-        data: { title, content, module_id: moduleId }
-      });
-      return { id: article.id };
-    } catch (error) {
-      console.error('Error creating article:', error);
-      throw error;
-    }
-  }
-
-  static async findById(id: number): Promise<Article | null> {
-    try {
-      return await prisma.article.findUnique({
-        where: { id },
-        include: { module: true }
-      });
-    } catch (error) {
-      console.error('Error finding article by id:', error);
-      throw error;
-    }
-  }
-
-  static async findByModuleId(moduleId: number): Promise<Article[]> {
-    try {
-      return await prisma.article.findMany({
-        where: { module_id: moduleId }
-      });
-    } catch (error) {
-      console.error('Error finding articles by module ID:', error);
       throw error;
     }
   }
