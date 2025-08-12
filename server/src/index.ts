@@ -185,6 +185,29 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Promote user to admin (for testing - remove in production)
+app.post('/api/promote-admin', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    
+    const user = await UserService.findByEmail(email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update user role to admin
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { role: 'admin' }
+    });
+
+    res.json({ message: 'User promoted to admin successfully' });
+  } catch (error) {
+    console.error('Error promoting user to admin:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Admin-only middleware
 const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   if (!req.user || req.user.role !== 'admin') {
