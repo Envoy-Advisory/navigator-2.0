@@ -22,7 +22,7 @@ export async function initializeDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('Database connected with Prisma');
-
+    
     // Test the connection
     await prisma.$queryRaw`SELECT 1`;
     console.log('Database connection test successful');
@@ -118,18 +118,6 @@ export class OrganizationService {
       throw error;
     }
   }
-
-  static async findById(id: number): Promise<Organization | null> {
-    try {
-      return await prisma.organization.findUnique({
-        where: { id },
-        include: { users: true }
-      });
-    } catch (error) {
-      console.error('Error finding organization by id:', error);
-      throw error;
-    }
-  }
 }
 
 // Module operations
@@ -217,6 +205,19 @@ export class ArticleService {
       });
     } catch (error) {
       console.error('Error deleting article:', error);
+      throw error;
+    }
+  }
+}
+
+  static async findById(id: number): Promise<Organization | null> {
+    try {
+      return await prisma.organization.findUnique({
+        where: { id },
+        include: { users: true }
+      });
+    } catch (error) {
+      console.error('Error finding organization by id:', error);
       throw error;
     }
   }
