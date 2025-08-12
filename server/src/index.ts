@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { UserService, OrganizationService, initializeDatabase, closeDatabase, User, prisma } from './database';
+import { UserService, OrganizationService, initializeDatabase, closeDatabase, User, prisma, ModuleService, ArticleService } from './database';
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
@@ -215,7 +215,7 @@ app.get('/api/modules', authenticateToken, requireAdmin, async (req: Authenticat
 app.post('/api/modules', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleNumber, moduleName } = req.body;
-    
+
     if (!moduleNumber || !moduleName) {
       return res.status(400).json({ error: 'Module number and name are required' });
     }
@@ -273,7 +273,7 @@ app.delete('/api/modules/:id', authenticateToken, requireAdmin, async (req: Auth
 app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleId } = req.params;
-    
+
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
       orderBy: { created_at: 'asc' }
@@ -289,7 +289,7 @@ app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, asyn
 app.post('/api/articles', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleId, articleName, content } = req.body;
-    
+
     if (!moduleId || !articleName || !content) {
       return res.status(400).json({ error: 'Module ID, article name, and content are required' });
     }
