@@ -39,3 +39,28 @@ model User {
 
   @@map("users")
 }
+
+model Module {
+  id           Int       @id @default(autoincrement())
+  moduleNumber Int
+  moduleName   String    @db.VarChar(255)
+  created_at   DateTime  @default(now())
+  
+  // Relations
+  articles     Article[]
+
+  @@map("modules")
+}
+
+model Article {
+  id          Int      @id @default(autoincrement())
+  moduleId    Int
+  articleName String   @db.VarChar(255)
+  content     String   @db.Text
+  created_at  DateTime @default(now())
+  
+  // Relations
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("articles")
+}
