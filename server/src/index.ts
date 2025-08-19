@@ -480,14 +480,37 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Check file extension
+    const allowedExtensions = /\.(jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi)$/i;
+    const extname = allowedExtensions.test(file.originalname);
+    
+    // Check MIME type
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'video/mp4',
+      'video/quicktime',
+      'video/x-msvideo'
+    ];
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+
+    console.log('File upload validation:', {
+      filename: file.originalname,
+      mimetype: file.mimetype,
+      extname,
+      mimetypeValid: mimetype
+    });
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only images, documents, and videos are allowed'));
+      cb(new Error(`File type not allowed. Received: ${file.mimetype}`));
     }
   }
 });
