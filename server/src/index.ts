@@ -534,6 +534,13 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
     }
 
     const fileUrl = `/uploads/${req.file.filename}`;
+    console.log('File uploaded successfully:', {
+      originalName: req.file.originalname,
+      savedAs: req.file.filename,
+      url: fileUrl,
+      path: req.file.path
+    });
+    
     res.json({ 
       message: 'File uploaded successfully',
       url: fileUrl,
