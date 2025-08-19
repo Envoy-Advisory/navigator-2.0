@@ -1724,7 +1724,9 @@ const ArticleForm: React.FC<{
                     .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
                     .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
                     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />') + '</p>'
+                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />')
+                    .replace(/src="\/uploads\//g, 'src="http://localhost:5000/uploads/')
+                    .replace(/src="uploads\//g, 'src="http://localhost:5000/uploads/') + '</p>'
                 }}
               />
             </div>

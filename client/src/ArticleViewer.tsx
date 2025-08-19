@@ -95,7 +95,7 @@ const ArticleViewer: React.FC = () => {
 
   const formatContent = (content: string) => {
     // Basic markdown-like formatting
-    return content
+    let formatted = content
       .replace(/\n\n/g, '</p><p>')
       .replace(/\n/g, '<br>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -105,6 +105,12 @@ const ArticleViewer: React.FC = () => {
       .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />');
+
+    // Fix image URLs to point to the backend server
+    formatted = formatted.replace(/src="\/uploads\//g, 'src="http://localhost:5000/uploads/');
+    formatted = formatted.replace(/src="uploads\//g, 'src="http://localhost:5000/uploads/');
+    
+    return formatted;
   };
 
   if (loading) {

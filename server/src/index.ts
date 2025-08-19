@@ -551,127 +551,14 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
   });
 });
 
-// Serve uploaded files with proper CORS and content-type headers
+// Serve uploaded files statically with CORS
 app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
-  console.log('Static file request:', req.url);
-  console.log('Full path:', path.join(__dirname, '../../uploads', req.url));
-  console.log('File exists:', fs.existsSync(path.join(__dirname, '../../uploads', req.url)));
-  
   // Set CORS headers for file serving
-  res.header('Access-Control-Allow-Origin', getEnvVar('CLIENT_URL', 'http://localhost:5173'));
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // Set proper content type based on file extension
-  const ext = path.extname(req.url).toLowerCase();
-  const mimeTypes: { [key: string]: string } = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.pdf': 'application/pdf',
-    '.txt': 'text/plain',
-    '.mp4': 'video/mp4'
-  };
-
-  if (mimeTypes[ext]) {
-    res.setHeader('Content-Type', mimeTypes[ext]);
-  }
-  
   next();
-}, express.static(path.join(__dirname, '../../uploads'), {
-  setHeaders: (res, path, stat) => {
-    // Additional security headers
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day cache
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-  }
-}));
-
-// Alternative route for API-based file serving (fallback)
-app.get('/api/files/:filename', (req: Request, res: Response) => {
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, '../../uploads', filename);
-
-  console.log('API file request for:', filename);
-  console.log('Looking for file at:', filePath);
-  console.log('File exists:', fs.existsSync(filePath));
-
-  // Check if file exists
-  if (!fs.existsSync(filePath)) {
-    console.log('Available files:', fs.readdirSync(path.join(__dirname, '../../uploads')));
-    return res.status(404).json({ error: 'File not found' });
-  }
-
-  // Set proper content type
-  const ext = path.extname(filename).toLowerCase();
-  const mimeTypes: { [key: string]: string } = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.pdf': 'application/pdf',
-    '.txt': 'text/plain',
-    '.mp4': 'video/mp4'
-  };
-
-  if (mimeTypes[ext]) {
-    res.setHeader('Content-Type', mimeTypes[ext]);
-  }
-
-  res.sendFile(filePath);
-});
-
-// Add endpoint to list all uploaded files (for debugging)
-app.get('/api/files', authenticateToken, requireAdmin, (req: Request, res: Response) => {
-  try {
-    const uploadsPath = path.join(__dirname, '../../uploads');
-    const files = fs.readdirSync(uploadsPath).map((filename: string) => ({
-      filename,
-      url: `/uploads/${filename}`,
-      apiUrl: `/api/files/${filename}`,
-      size: fs.statSync(path.join(uploadsPath, filename)).size,
-      created: fs.statSync(path.join(uploadsPath, filename)).birthtime
-    }));
-    
-    res.json({ files });
-  } catch (error) {
-    console.error('Error listing files:', error);
-    res.status(500).json({ error: 'Failed to list files' });
-  }
-});
-
-// Public endpoint to test image serving
-app.get('/api/test-image/:filename', (req: Request, res: Response) => {
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, '../../uploads', filename);
-  
-  console.log('Testing image access for:', filename);
-  console.log('File path:', filePath);
-  console.log('File exists:', fs.existsSync(filePath));
-  
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ 
-      error: 'File not found',
-      filename,
-      availableFiles: fs.readdirSync(path.join(__dirname, '../../uploads'))
-    });
-  }
-  
-  const ext = path.extname(filename).toLowerCase();
-  const mimeTypes: { [key: string]: string } = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif'
-  };
-
-  if (mimeTypes[ext]) {
-    res.setHeader('Content-Type', mimeTypes[ext]);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.sendFile(filePath);
-});
+}, express.static(path.join(__dirname, '../../uploads')));
 
 // Initialize database on startup
 initializeDatabase().catch((error) => {
