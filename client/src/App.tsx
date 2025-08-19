@@ -1200,6 +1200,39 @@ const AdminPanel: React.FC<{
     }
   };
 
+  const handleReorderArticles = async (reorderedArticles: CMSArticle[]) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/articles/reorder', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          articles: reorderedArticles.map((article, index) => ({
+            id: article.id,
+            position: index
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to reorder articles');
+        // Refresh articles to restore original order
+        if (selectedModule) {
+          fetchArticles(selectedModule.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error reordering articles:', error);
+      // Refresh articles to restore original order
+      if (selectedModule) {
+        fetchArticles(selectedModule.id);
+      }
+    }
+  };
+
   const selectModule = (module: CMSModule) => {
     setSelectedModule(module);
     fetchArticles(module.id);
@@ -1246,8 +1279,44 @@ const AdminPanel: React.FC<{
           
           {selectedModule && (
             <div className="articles-list">
-              {articles.map(article => (
-                <div key={article.id} className="article-item">
+              {articles.map((article, index) => (
+                <div 
+                  key={article.id} 
+                  className="article-item"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', index.toString());
+                    e.currentTarget.classList.add('dragging');
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove('dragging');
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('drag-over');
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.classList.remove('drag-over');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('drag-over');
+                    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    const targetIndex = index;
+                    
+                    if (draggedIndex !== targetIndex) {
+                      const newArticles = [...articles];
+                      const draggedArticle = newArticles[draggedIndex];
+                      newArticles.splice(draggedIndex, 1);
+                      newArticles.splice(targetIndex, 0, draggedArticle);
+                      setArticles(newArticles);
+                      
+                      // Update article positions on server
+                      handleReorderArticles(newArticles);
+                    }
+                  }}
+                >
+                  <div className="drag-handle">⋮⋮</div>
                   <div className="article-info">
                     <h4>{article.articleName}</h4>
                     <p>{article.content.length > 100 ? article.content.substring(0, 100) + '...' : article.content}</p>
@@ -1351,6 +1420,7 @@ const ArticleForm: React.FC<{
 }> = ({ article, moduleId, onSave, onCancel }) => {
   const [articleName, setArticleName] = useState(article?.articleName || '');
   const [content, setContent] = useState(article?.content || '');
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1360,9 +1430,143 @@ const ArticleForm: React.FC<{
     onSave(data);
   };
 
+  const insertAtCursor = (text: string) => {
+    const textarea = document.getElementById('content-editor') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newContent = content.substring(0, start) + text + content.substring(end);
+      setContent(newContent);
+      
+      // Restore cursor position
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    }
+  };
+
+  const formatText = (formatType: string) => {
+    const textarea = document.getElementById('content-editor') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = content.substring(start, end);
+      
+      let formattedText = '';
+      switch (formatType) {
+        case 'bold':
+          formattedText = `**${selectedText || 'bold text'}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText || 'italic text'}*`;
+          break;
+        case 'underline':
+          formattedText = `<u>${selectedText || 'underlined text'}</u>`;
+          break;
+        case 'heading1':
+          formattedText = `# ${selectedText || 'Heading 1'}`;
+          break;
+        case 'heading2':
+          formattedText = `## ${selectedText || 'Heading 2'}`;
+          break;
+        case 'heading3':
+          formattedText = `### ${selectedText || 'Heading 3'}`;
+          break;
+        case 'link':
+          const url = prompt('Enter URL:') || '#';
+          formattedText = `[${selectedText || 'Link Text'}](${url})`;
+          break;
+        case 'image':
+          const imageUrl = prompt('Enter image URL:') || '';
+          formattedText = `![${selectedText || 'Alt text'}](${imageUrl})`;
+          break;
+        case 'video':
+          const videoUrl = prompt('Enter video URL (YouTube, Vimeo, etc.):') || '';
+          formattedText = `<video controls><source src="${videoUrl}" type="video/mp4">Video: ${videoUrl}</video>`;
+          break;
+        case 'color':
+          const color = prompt('Enter color (hex, rgb, or name):') || 'red';
+          formattedText = `<span style="color: ${color}">${selectedText || 'colored text'}</span>`;
+          break;
+        case 'size':
+          const size = prompt('Enter font size (e.g., 18px, 1.5em):') || '18px';
+          formattedText = `<span style="font-size: ${size}">${selectedText || 'sized text'}</span>`;
+          break;
+        default:
+          return;
+      }
+      
+      const newContent = content.substring(0, start) + formattedText + content.substring(end);
+      setContent(newContent);
+      
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      }, 0);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fileUrl = data.url;
+        
+        if (file.type.startsWith('image/')) {
+          insertAtCursor(`![${file.name}](${fileUrl})`);
+        } else {
+          insertAtCursor(`[${file.name}](${fileUrl})`);
+        }
+      } else {
+        alert('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file');
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach(file => {
+      if (file.type.startsWith('image/') || 
+          file.type === 'application/pdf' || 
+          file.type.includes('document') ||
+          file.type.includes('word')) {
+        handleFileUpload(file);
+      }
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   return (
     <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content extra-large" onClick={(e) => e.stopPropagation()}>
         <h3>{article ? 'Edit Article' : 'Create Article'}</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -1374,17 +1578,122 @@ const ArticleForm: React.FC<{
               required
             />
           </div>
+          
           <div className="form-group">
             <label>Content:</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={10}
-              required
-            />
+            
+            {/* Rich Text Toolbar */}
+            <div className="rich-text-toolbar">
+              <div className="toolbar-group">
+                <button type="button" onClick={() => formatText('bold')} title="Bold">
+                  <strong>B</strong>
+                </button>
+                <button type="button" onClick={() => formatText('italic')} title="Italic">
+                  <em>I</em>
+                </button>
+                <button type="button" onClick={() => formatText('underline')} title="Underline">
+                  <u>U</u>
+                </button>
+              </div>
+              
+              <div className="toolbar-group">
+                <button type="button" onClick={() => formatText('heading1')} title="Heading 1">
+                  H1
+                </button>
+                <button type="button" onClick={() => formatText('heading2')} title="Heading 2">
+                  H2
+                </button>
+                <button type="button" onClick={() => formatText('heading3')} title="Heading 3">
+                  H3
+                </button>
+              </div>
+              
+              <div className="toolbar-group">
+                <button type="button" onClick={() => formatText('color')} title="Text Color">
+                  🎨
+                </button>
+                <button type="button" onClick={() => formatText('size')} title="Font Size">
+                  📏
+                </button>
+              </div>
+              
+              <div className="toolbar-group">
+                <button type="button" onClick={() => formatText('link')} title="Insert Link">
+                  🔗
+                </button>
+                <button type="button" onClick={() => formatText('image')} title="Insert Image">
+                  🖼️
+                </button>
+                <button type="button" onClick={() => formatText('video')} title="Insert Video">
+                  🎬
+                </button>
+              </div>
+              
+              <div className="toolbar-group">
+                <label className="file-upload-btn" title="Upload File">
+                  📁
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        Array.from(e.target.files).forEach(handleFileUpload);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+            
+            {/* Content Editor */}
+            <div 
+              className={`content-editor-container ${isDragging ? 'dragging' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <textarea
+                id="content-editor"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={15}
+                placeholder="Start typing your article content... You can drag and drop images and files here!"
+                required
+              />
+              {isDragging && (
+                <div className="drop-overlay">
+                  <div className="drop-message">
+                    Drop files here to upload
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Preview */}
+            <div className="content-preview">
+              <h4>Preview:</h4>
+              <div 
+                className="preview-content"
+                dangerouslySetInnerHTML={{ 
+                  __html: content
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
+                    .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
+                    .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
+                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />')
+                }}
+              />
+            </div>
           </div>
+          
           <div className="form-actions">
-            <button type="submit" className="save-btn">Save</button>
+            <button type="submit" className="save-btn">Save Article</button>
             <button type="button" onClick={onCancel} className="cancel-btn">Cancel</button>
           </div>
         </form>

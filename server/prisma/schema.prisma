@@ -57,6 +57,7 @@ model Article {
   moduleId    Int
   articleName String   @db.VarChar(255)
   content     String   @db.Text
+  position    Int      @default(0)
   created_at  DateTime @default(now())
   
   // Relations

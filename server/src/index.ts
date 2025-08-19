@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import path from 'path';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User, prisma } from './database';
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
@@ -206,7 +207,10 @@ app.get('/api/modules/:moduleId/articles/public', async (req: Request, res: Resp
     
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
-      orderBy: { created_at: 'asc' }
+      orderBy: [
+        { position: 'asc' },
+        { created_at: 'asc' }
+      ]
     });
 
     res.json(articles);
@@ -352,7 +356,10 @@ app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, asyn
     
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
-      orderBy: { created_at: 'asc' }
+      orderBy: [
+        { position: 'asc' },
+        { created_at: 'asc' }
+      ]
     });
 
     res.json(articles);
@@ -419,6 +426,101 @@ app.delete('/api/articles/:id', authenticateToken, requireAdmin, async (req: Aut
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// Article reordering endpoint
+app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { articles } = req.body;
+
+    if (!articles || !Array.isArray(articles)) {
+      return res.status(400).json({ error: 'Articles array is required' });
+    }
+
+    // Update article positions
+    const updatePromises = articles.map((article: { id: number; position: number }) =>
+      prisma.article.update({
+        where: { id: article.id },
+        data: { position: article.position }
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.json({ message: 'Articles reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering articles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// File upload endpoint
+app.post('/api/upload', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const multer = require('multer');
+    const path = require('path');
+    const fs = require('fs');
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const storage = multer.diskStorage({
+      destination: (req: any, file: any, cb: any) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req: any, file: any, cb: any) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    });
+
+    const upload = multer({ 
+      storage: storage,
+      limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+      },
+      fileFilter: (req: any, file: any, cb: any) => {
+        const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+
+        if (mimetype && extname) {
+          return cb(null, true);
+        } else {
+          cb(new Error('Only images, documents, and videos are allowed'));
+        }
+      }
+    }).single('file');
+
+    upload(req, res, (err: any) => {
+      if (err) {
+        console.error('Upload error:', err);
+        return res.status(400).json({ error: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      res.json({ 
+        message: 'File uploaded successfully',
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 // Initialize database on startup
 initializeDatabase().catch((error) => {
