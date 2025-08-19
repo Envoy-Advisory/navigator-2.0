@@ -1,0 +1,23 @@
+TSError: ⨯ Unable to compile TypeScript:
+src/index.ts:497:12 - error TS2345: Argument of type 'AuthenticatedRequest' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+  The types of 'app.get' are incompatible between these types.
+    Type '((name: string) => any) & import("/home/runner/workspace/server/node_modules/@types/express-serve-static-core/index").IRouterMatcher<import("/home/runner/workspace/server/node_modules/@types/express-serve-static-core/index").Application<Record<string, any>>, any>' is not assignable to type '((name: string) => any) & import("/home/runner/workspace/node_modules/@types/express-serve-static-core/index").IRouterMatcher<import("/home/runner/workspace/node_modules/@types/express-serve-static-core/index").Application<Record<string, any>>, any>'.
+      Type '((name: string) => any) & IRouterMatcher<Application<Record<string, any>>, any>' is not assignable to type 'IRouterMatcher<Application<Record<string, any>>, any>'.
+        Types of parameters 'name' and 'path' are incompatible.
+          Type 'PathParams' is not assignable to type 'string'.
+            Type 'RegExp' is not assignable to type 'string'.
+
+497     upload(req, res, (err: any) => {
+               ~~~
+
+    at createTSError (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1617:30)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Object.require.extensions.<computed> [as .ts] (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12) {
+  diagnosticCodes: [ 2345 ]
