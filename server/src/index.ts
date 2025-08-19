@@ -574,7 +574,42 @@ app.get('/api/files/:filename', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'File not found' });
   }
 
+  // Set proper content type
+  const ext = path.extname(filename).toLowerCase();
+  const mimeTypes: { [key: string]: string } = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+    '.mp4': 'video/mp4'
+  };
+
+  if (mimeTypes[ext]) {
+    res.setHeader('Content-Type', mimeTypes[ext]);
+  }
+
   res.sendFile(filePath);
+});
+
+// Add endpoint to list all uploaded files (for debugging)
+app.get('/api/files', authenticateToken, requireAdmin, (req: Request, res: Response) => {
+  try {
+    const uploadsPath = path.join(__dirname, '../../uploads');
+    const files = fs.readdirSync(uploadsPath).map(filename => ({
+      filename,
+      url: `/uploads/${filename}`,
+      apiUrl: `/api/files/${filename}`,
+      size: fs.statSync(path.join(uploadsPath, filename)).size,
+      created: fs.statSync(path.join(uploadsPath, filename)).birthtime
+    }));
+    
+    res.json({ files });
+  } catch (error) {
+    console.error('Error listing files:', error);
+    res.status(500).json({ error: 'Failed to list files' });
+  }
 });
 
 // Initialize database on startup
