@@ -1212,13 +1212,21 @@ const AdminPanel: React.FC<{
         body: JSON.stringify({
           articles: reorderedArticles.map((article, index) => ({
             id: article.id,
-            position: index
+            position: index + 1
           }))
         }),
       });
 
-      if (!response.ok) {
-        console.error('Failed to reorder articles');
+      if (response.ok) {
+        console.log('Articles reordered successfully');
+        // Optionally refresh to ensure consistency
+        if (selectedModule) {
+          fetchArticles(selectedModule.id);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to reorder articles:', errorData);
+        alert('Failed to reorder articles. Please try again.');
         // Refresh articles to restore original order
         if (selectedModule) {
           fetchArticles(selectedModule.id);
@@ -1226,6 +1234,7 @@ const AdminPanel: React.FC<{
       }
     } catch (error) {
       console.error('Error reordering articles:', error);
+      alert('Network error while reordering articles. Please try again.');
       // Refresh articles to restore original order
       if (selectedModule) {
         fetchArticles(selectedModule.id);
@@ -1304,11 +1313,13 @@ const AdminPanel: React.FC<{
                     const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
                     const targetIndex = index;
                     
-                    if (draggedIndex !== targetIndex) {
+                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0) {
                       const newArticles = [...articles];
                       const draggedArticle = newArticles[draggedIndex];
                       newArticles.splice(draggedIndex, 1);
                       newArticles.splice(targetIndex, 0, draggedArticle);
+                      
+                      // Update local state immediately for responsive UI
                       setArticles(newArticles);
                       
                       // Update article positions on server

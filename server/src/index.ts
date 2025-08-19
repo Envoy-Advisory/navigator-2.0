@@ -438,17 +438,31 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
       return res.status(400).json({ error: 'Articles array is required' });
     }
 
+    console.log('Reordering articles:', articles);
+
+    // Validate that all articles have required fields
+    for (const article of articles) {
+      if (!article.id || typeof article.position !== 'number') {
+        return res.status(400).json({ error: 'Each article must have id and position' });
+      }
+    }
+
     // Update article positions
-    const updatePromises = articles.map((article: { id: number; position: number }) =>
-      prisma.article.update({
+    const updatePromises = articles.map((article: { id: number; position: number }) => {
+      console.log(`Updating article ${article.id} to position ${article.position}`);
+      return prisma.article.update({
         where: { id: article.id },
         data: { position: article.position }
-      })
-    );
+      });
+    });
 
-    await Promise.all(updatePromises);
+    const results = await Promise.all(updatePromises);
+    console.log('Article reordering completed:', results.length, 'articles updated');
 
-    res.json({ message: 'Articles reordered successfully' });
+    res.json({ 
+      message: 'Articles reordered successfully',
+      updatedCount: results.length 
+    });
   } catch (error) {
     console.error('Error reordering articles:', error);
     res.status(500).json({ error: 'Internal server error' });
