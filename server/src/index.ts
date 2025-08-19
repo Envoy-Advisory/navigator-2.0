@@ -3,6 +3,7 @@ import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import path from 'path';
+import multer from 'multer';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User, prisma } from './database';
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
@@ -29,6 +30,7 @@ interface JWTPayload {
 interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
   headers: any;
+  file?: Express.Multer.File;
 }
 
 // Register endpoint
@@ -456,8 +458,6 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
 // File upload endpoint
 app.post('/api/upload', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const multer = require('multer');
-    const path = require('path');
     const fs = require('fs');
 
     // Create uploads directory if it doesn't exist
