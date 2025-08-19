@@ -1477,17 +1477,9 @@ const ArticleForm: React.FC<{
           const url = prompt('Enter URL:') || '#';
           formattedText = `[${selectedText || 'Link Text'}](${url})`;
           break;
-        case 'image':
-          const imageUrl = prompt('Enter image URL:') || '';
-          formattedText = `![${selectedText || 'Alt text'}](${imageUrl})`;
-          break;
         case 'video':
           const videoUrl = prompt('Enter video URL (YouTube, Vimeo, etc.):') || '';
           formattedText = `<video controls><source src="${videoUrl}" type="video/mp4">Video: ${videoUrl}</video>`;
-          break;
-        case 'color':
-          const color = prompt('Enter color (hex, rgb, or name):') || 'red';
-          formattedText = `<span style="color: ${color}">${selectedText || 'colored text'}</span>`;
           break;
         case 'size':
           const size = prompt('Enter font size (e.g., 18px, 1.5em):') || '18px';
@@ -1504,6 +1496,39 @@ const ArticleForm: React.FC<{
         textarea.focus();
         textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
       }, 0);
+    }
+  };
+
+  const handleColorPicker = () => {
+    const textarea = document.getElementById('content-editor') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = content.substring(start, end);
+      
+      // Create a color input element
+      const colorInput = document.createElement('input');
+      colorInput.type = 'color';
+      colorInput.value = '#ff0000';
+      colorInput.style.position = 'absolute';
+      colorInput.style.top = '-9999px';
+      document.body.appendChild(colorInput);
+      
+      colorInput.onchange = () => {
+        const color = colorInput.value;
+        const formattedText = `<span style="color: ${color}">${selectedText || 'colored text'}</span>`;
+        const newContent = content.substring(0, start) + formattedText + content.substring(end);
+        setContent(newContent);
+        
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+        }, 0);
+        
+        document.body.removeChild(colorInput);
+      };
+      
+      colorInput.click();
     }
   };
 
@@ -1526,7 +1551,7 @@ const ArticleForm: React.FC<{
         const fileUrl = data.url;
         
         if (file.type.startsWith('image/')) {
-          insertAtCursor(`![${file.name}](${fileUrl})`);
+          insertAtCursor(`<img src="${fileUrl}" alt="${file.name}" style="max-width: 100%; height: auto;" />`);
         } else {
           insertAtCursor(`[${file.name}](${fileUrl})`);
         }
@@ -1537,6 +1562,19 @@ const ArticleForm: React.FC<{
       console.error('Upload error:', error);
       alert('Failed to upload file');
     }
+  };
+
+  const triggerImageUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        handleFileUpload(target.files[0]);
+      }
+    };
+    input.click();
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -1609,7 +1647,7 @@ const ArticleForm: React.FC<{
               </div>
               
               <div className="toolbar-group">
-                <button type="button" onClick={() => formatText('color')} title="Text Color">
+                <button type="button" onClick={handleColorPicker} title="Text Color">
                   🎨
                 </button>
                 <button type="button" onClick={() => formatText('size')} title="Font Size">
@@ -1621,7 +1659,7 @@ const ArticleForm: React.FC<{
                 <button type="button" onClick={() => formatText('link')} title="Insert Link">
                   🔗
                 </button>
-                <button type="button" onClick={() => formatText('image')} title="Insert Image">
+                <button type="button" onClick={triggerImageUpload} title="Upload Image">
                   🖼️
                 </button>
                 <button type="button" onClick={() => formatText('video')} title="Insert Video">
@@ -1677,7 +1715,7 @@ const ArticleForm: React.FC<{
               <div 
                 className="preview-content"
                 dangerouslySetInnerHTML={{ 
-                  __html: content
+                  __html: '<p>' + content
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>')
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1686,7 +1724,7 @@ const ArticleForm: React.FC<{
                     .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
                     .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
                     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />')
+                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />') + '</p>'
                 }}
               />
             </div>
