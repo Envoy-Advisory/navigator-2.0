@@ -206,7 +206,7 @@ app.get('/api/modules/public', async (req: Request, res: Response) => {
 app.get('/api/modules/:moduleId/articles/public', async (req: Request, res: Response) => {
   try {
     const { moduleId } = req.params;
-    
+
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
       orderBy: [
@@ -225,7 +225,7 @@ app.get('/api/modules/:moduleId/articles/public', async (req: Request, res: Resp
 app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     const article = await prisma.article.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -248,7 +248,7 @@ app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
 app.post('/api/promote-admin', async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    
+
     const user = await UserService.findByEmail(email);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -297,7 +297,7 @@ app.get('/api/modules', authenticateToken, requireAdmin, async (req: Authenticat
 app.post('/api/modules', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleNumber, moduleName } = req.body;
-    
+
     if (!moduleNumber || !moduleName) {
       return res.status(400).json({ error: 'Module number and name are required' });
     }
@@ -355,7 +355,7 @@ app.delete('/api/modules/:id', authenticateToken, requireAdmin, async (req: Auth
 app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleId } = req.params;
-    
+
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
       orderBy: [
@@ -374,7 +374,7 @@ app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, asyn
 app.post('/api/articles', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { moduleId, articleName, content } = req.body;
-    
+
     if (!moduleId || !articleName || !content) {
       return res.status(400).json({ error: 'Module ID, article name, and content are required' });
     }
@@ -462,6 +462,10 @@ const uploadsDir = path.join(__dirname, '../../uploads');
 // Create uploads directory if it doesn't exist
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('Created uploads directory:', uploadsDir);
+} else {
+  console.log('Uploads directory exists:', uploadsDir);
+  console.log('Files in uploads:', fs.readdirSync(uploadsDir));
 }
 
 const storage = multer.diskStorage({
@@ -483,7 +487,7 @@ const upload = multer({
     // Check file extension
     const allowedExtensions = /\.(jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi)$/i;
     const extname = allowedExtensions.test(file.originalname);
-    
+
     // Check MIME type
     const allowedMimeTypes = [
       'image/jpeg',
@@ -518,7 +522,7 @@ const upload = multer({
 // File upload endpoint
 app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequest, res: Response) => {
   const uploadMiddleware = upload.single('file');
-  
+
   uploadMiddleware(req as any, res as any, (err: any) => {
     if (err) {
       console.error('Upload error:', err);
@@ -540,8 +544,31 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
   });
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+// Serve uploaded files with detailed logging
+app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+  console.log('Static file request:', req.url);
+  console.log('Full path:', path.join(__dirname, '../../uploads', req.url));
+  console.log('File exists:', fs.existsSync(path.join(__dirname, '../../uploads', req.url)));
+  next();
+}, express.static(path.join(__dirname, '../../uploads')));
+
+// Alternative route for API-based file serving (fallback)
+app.get('/api/files/:filename', (req: Request, res: Response) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, '../../uploads', filename);
+
+  console.log('API file request for:', filename);
+  console.log('Looking for file at:', filePath);
+  console.log('File exists:', fs.existsSync(filePath));
+
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    console.log('Available files:', fs.readdirSync(path.join(__dirname, '../../uploads')));
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  res.sendFile(filePath);
+});
 
 // Initialize database on startup
 initializeDatabase().catch((error) => {
