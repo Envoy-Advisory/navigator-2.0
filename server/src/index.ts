@@ -455,63 +455,57 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
   }
 });
 
-// File upload endpoint
-app.post('/api/upload', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const fs = require('fs');
+// Configure multer storage outside the endpoint
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, '../../uploads');
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only images, documents, and videos are allowed'));
+    }
+  }
+});
+
+// File upload endpoint
+app.post('/api/upload', authenticateToken, requireAdmin, upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const storage = multer.diskStorage({
-      destination: (req: any, file: any, cb: any) => {
-        cb(null, uploadsDir);
-      },
-      filename: (req: any, file: any, cb: any) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-      }
-    });
-
-    const upload = multer({ 
-      storage: storage,
-      limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB limit
-      },
-      fileFilter: (req: any, file: any, cb: any) => {
-        const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-          return cb(null, true);
-        } else {
-          cb(new Error('Only images, documents, and videos are allowed'));
-        }
-      }
-    }).single('file');
-
-    upload(req, res, (err: any) => {
-      if (err) {
-        console.error('Upload error:', err);
-        return res.status(400).json({ error: err.message });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
-
-      const fileUrl = `/uploads/${req.file.filename}`;
-      res.json({ 
-        message: 'File uploaded successfully',
-        url: fileUrl,
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        size: req.file.size
-      });
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ 
+      message: 'File uploaded successfully',
+      url: fileUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size
     });
   } catch (error) {
     console.error('Error uploading file:', error);
