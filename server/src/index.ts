@@ -597,7 +597,7 @@ app.get('/api/files/:filename', (req: Request, res: Response) => {
 app.get('/api/files', authenticateToken, requireAdmin, (req: Request, res: Response) => {
   try {
     const uploadsPath = path.join(__dirname, '../../uploads');
-    const files = fs.readdirSync(uploadsPath).map(filename => ({
+    const files = fs.readdirSync(uploadsPath).map((filename: string) => ({
       filename,
       url: `/uploads/${filename}`,
       apiUrl: `/api/files/${filename}`,
