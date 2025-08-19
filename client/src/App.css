@@ -1381,13 +1381,6 @@ body {
 }
 
 /* CMS Admin Styles */
-.admin-panel {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-/* CMS Layout */
 .cms-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

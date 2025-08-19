@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
+import ArticleViewer from './ArticleViewer';
 
 interface User {
   id: string;
@@ -306,6 +307,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomePage testimonials={testimonials} />} />
           <Route path="/program" element={<ProgramPage />} />
+          <Route path="/articles" element={<ArticleViewer />} />
           <Route path="/dashboard" element={
             currentUser ? <Dashboard currentUser={currentUser} modules={modules} /> : <Redirect to="/" />
           } />
@@ -381,6 +383,7 @@ const Header: React.FC<{
       <nav className="header-nav">
         <Link to="/" className="nav-link">Home</Link>
         <Link to="/program" className="nav-link">Program</Link>
+        <Link to="/articles" className="nav-link">Articles</Link>
         {currentUser && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
         <Link to="/faq" className="nav-link">FAQ</Link>
       </nav>

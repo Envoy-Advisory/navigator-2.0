@@ -185,6 +185,59 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Public routes for article viewing (no authentication required)
+app.get('/api/modules/public', async (req: Request, res: Response) => {
+  try {
+    const modules = await prisma.module.findMany({
+      orderBy: {
+        moduleNumber: 'asc'
+      }
+    });
+    res.json(modules);
+  } catch (error) {
+    console.error('Error fetching public modules:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/modules/:moduleId/articles/public', async (req: Request, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+    
+    const articles = await prisma.article.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: { created_at: 'asc' }
+    });
+
+    res.json(articles);
+  } catch (error) {
+    console.error('Error fetching public articles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const article = await prisma.article.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        module: true
+      }
+    });
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    res.json(article);
+  } catch (error) {
+    console.error('Error fetching public article:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Promote user to admin (for testing - remove in production)
 app.post('/api/promote-admin', async (req: Request, res: Response) => {
   try {
