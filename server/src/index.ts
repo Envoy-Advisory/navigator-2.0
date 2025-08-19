@@ -551,8 +551,8 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
   });
 });
 
-// Serve uploaded files statically with CORS
-app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+// Serve uploaded files through API endpoint with CORS
+app.use('/api/uploads', (req: Request, res: Response, next: NextFunction) => {
   // Set CORS headers for file serving
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');

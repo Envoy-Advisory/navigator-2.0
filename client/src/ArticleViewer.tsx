@@ -106,15 +106,9 @@ const ArticleViewer: React.FC = () => {
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />');
 
-    // Construct backend URL dynamically based on current domain
-    const currentHost = window.location.hostname;
-    const backendUrl = currentHost === 'localhost' 
-      ? 'http://localhost:5000' 
-      : `https://${currentHost}:5000`;
-    
-    // Fix image URLs to point to the backend server
-    formatted = formatted.replace(/src="\/uploads\//g, `src="${backendUrl}/uploads/`);
-    formatted = formatted.replace(/src="uploads\//g, `src="${backendUrl}/uploads/`);
+    // Use relative URLs for uploads - let the proxy/routing handle it
+    formatted = formatted.replace(/src="\/uploads\//g, 'src="/api/uploads/');
+    formatted = formatted.replace(/src="uploads\//g, 'src="/api/uploads/');
     
     return formatted;
   };

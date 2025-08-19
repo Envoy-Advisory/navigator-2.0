@@ -1715,25 +1715,18 @@ const ArticleForm: React.FC<{
               <div 
                 className="preview-content"
                 dangerouslySetInnerHTML={{ 
-                  __html: (() => {
-                    const currentHost = window.location.hostname;
-                    const backendUrl = currentHost === 'localhost' 
-                      ? 'http://localhost:5000' 
-                      : `https://${currentHost}:5000`;
-                    
-                    return '<p>' + content
-                      .replace(/\n\n/g, '</p><p>')
-                      .replace(/\n/g, '<br>')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
-                      .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
-                      .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
-                      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-                      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />')
-                      .replace(/src="\/uploads\//g, `src="${backendUrl}/uploads/`)
-                      .replace(/src="uploads\//g, `src="${backendUrl}/uploads/`) + '</p>';
-                  })()
+                  __html: '<p>' + content
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>')
+                    .replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>')
+                    .replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>')
+                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />')
+                    .replace(/src="\/uploads\//g, 'src="/api/uploads/')
+                    .replace(/src="uploads\//g, 'src="/api/uploads/') + '</p>'
                 }}
               />
             </div>
