@@ -494,7 +494,9 @@ const upload = multer({
 
 // File upload endpoint
 app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequest, res: Response) => {
-  upload.single('file')(req as any, res, (err: any) => {
+  const uploadMiddleware = upload.single('file');
+  
+  uploadMiddleware(req as any, res as any, (err: any) => {
     if (err) {
       console.error('Upload error:', err);
       return res.status(400).json({ error: err.message });
