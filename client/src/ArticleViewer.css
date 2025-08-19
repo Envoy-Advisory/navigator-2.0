@@ -13,6 +13,8 @@
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
   box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 .article-nav-header {
@@ -37,6 +39,8 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .module-nav-item {
@@ -86,16 +90,23 @@
 .articles-submenu {
   background: #f8f9fa;
   border-left: 4px solid #e0e0e0;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .article-nav-item {
   display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
   padding: 1rem 3rem;
   color: #666;
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.3s;
   border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
 }
 
 .article-nav-item:hover {
@@ -312,6 +323,28 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Custom Scrollbar Styling */
+.modules-nav-list::-webkit-scrollbar,
+.articles-submenu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modules-nav-list::-webkit-scrollbar-track,
+.articles-submenu::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modules-nav-list::-webkit-scrollbar-thumb,
+.articles-submenu::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.modules-nav-list::-webkit-scrollbar-thumb:hover,
+.articles-submenu::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* Article Navigation States */
