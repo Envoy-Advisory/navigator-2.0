@@ -399,6 +399,16 @@ app.put('/api/articles/:id', authenticateToken, requireAdmin, async (req: Authen
     const { id } = req.params;
     const { articleName, content } = req.body;
 
+    console.log('Article update request:', { id, articleName, content });
+
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({ error: 'Invalid article ID' });
+    }
+
+    if (!articleName || !content) {
+      return res.status(400).json({ error: 'Article name and content are required' });
+    }
+
     const article = await prisma.article.update({
       where: { id: parseInt(id) },
       data: {
@@ -410,7 +420,11 @@ app.put('/api/articles/:id', authenticateToken, requireAdmin, async (req: Authen
     res.json(article);
   } catch (error) {
     console.error('Error updating article:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      res.status(404).json({ error: 'Article not found' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 });
 
@@ -491,7 +505,7 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
     });
   } catch (error) {
     console.error('Error reordering articles:', error);
-    
+
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes('Record to update not found')) {
@@ -507,8 +521,9 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
   }
 });
 
-// Configure multer storage outside the endpoint
+// File upload endpoint
 const fs = require('fs');
+const path = require('path');
 const uploadsDir = path.join(__dirname, '../../uploads');
 
 // Create uploads directory if it doesn't exist
@@ -592,7 +607,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
       url: fileUrl,
       path: req.file.path
     });
-    
+
     res.json({ 
       message: 'File uploaded successfully',
       url: fileUrl,
