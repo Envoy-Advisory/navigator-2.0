@@ -5,7 +5,6 @@ entrypoint = "client/src/App.tsx"
 
 [nix]
 channel = "stable-24_05"
-packages = ["lsof"]
 
 [unitTest]
 language = "nodejs"
