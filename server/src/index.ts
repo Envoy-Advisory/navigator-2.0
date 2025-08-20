@@ -438,16 +438,38 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
       return res.status(400).json({ error: 'Articles array is required' });
     }
 
+    if (articles.length === 0) {
+      return res.status(400).json({ error: 'Articles array cannot be empty' });
+    }
+
     console.log('Reordering articles:', articles);
 
     // Validate that all articles have required fields
     for (const article of articles) {
-      if (!article.id || typeof article.position !== 'number') {
-        return res.status(400).json({ error: 'Each article must have id and position' });
+      if (!article.id || typeof article.id !== 'number') {
+        return res.status(400).json({ error: 'Each article must have a valid numeric id' });
+      }
+      if (typeof article.position !== 'number' || article.position < 1) {
+        return res.status(400).json({ error: 'Each article must have a valid position (number >= 1)' });
       }
     }
 
-    // Update article positions
+    // Check if all articles exist before updating
+    const articleIds = articles.map((article: { id: number; position: number }) => article.id);
+    const existingArticles = await prisma.article.findMany({
+      where: { id: { in: articleIds } },
+      select: { id: true }
+    });
+
+    if (existingArticles.length !== articles.length) {
+      const existingIds = existingArticles.map(a => a.id);
+      const missingIds = articleIds.filter(id => !existingIds.includes(id));
+      return res.status(400).json({ 
+        error: `Articles not found: ${missingIds.join(', ')}` 
+      });
+    }
+
+    // Update article positions in a transaction
     const updatePromises = articles.map((article: { id: number; position: number }) => {
       console.log(`Updating article ${article.id} to position ${article.position}`);
       return prisma.article.update({
@@ -456,16 +478,32 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
       });
     });
 
-    const results = await Promise.all(updatePromises);
+    const results = await prisma.$transaction(updatePromises);
     console.log('Article reordering completed:', results.length, 'articles updated');
 
     res.json({ 
       message: 'Articles reordered successfully',
-      updatedCount: results.length 
+      updatedCount: results.length,
+      articles: results.map(article => ({
+        id: article.id,
+        position: article.position
+      }))
     });
   } catch (error) {
     console.error('Error reordering articles:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Record to update not found')) {
+        res.status(404).json({ error: 'One or more articles not found' });
+      } else if (error.message.includes('Unique constraint')) {
+        res.status(400).json({ error: 'Position conflict detected' });
+      } else {
+        res.status(500).json({ error: `Server error: ${error.message}` });
+      }
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 });
 

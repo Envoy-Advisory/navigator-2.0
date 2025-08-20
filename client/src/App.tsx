@@ -1202,31 +1202,54 @@ const AdminPanel: React.FC<{
 
   const handleReorderArticles = async (reorderedArticles: CMSArticle[]) => {
     try {
+      // Validate input data
+      if (!reorderedArticles || reorderedArticles.length === 0) {
+        console.error('No articles to reorder');
+        return;
+      }
+
+      // Validate that all articles have valid IDs
+      const invalidArticles = reorderedArticles.filter(article => !article.id || typeof article.id !== 'number');
+      if (invalidArticles.length > 0) {
+        console.error('Invalid articles found:', invalidArticles);
+        alert('Some articles have invalid data. Please refresh and try again.');
+        if (selectedModule) {
+          fetchArticles(selectedModule.id);
+        }
+        return;
+      }
+
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert('Please log in again to reorder articles.');
+        return;
+      }
+
+      const requestBody = {
+        articles: reorderedArticles.map((article, index) => ({
+          id: article.id,
+          position: index + 1
+        }))
+      };
+
+      console.log('Sending reorder request:', requestBody);
+
       const response = await fetch('/api/articles/reorder', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          articles: reorderedArticles.map((article, index) => ({
-            id: article.id,
-            position: index + 1
-          }))
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
-        console.log('Articles reordered successfully');
-        // Optionally refresh to ensure consistency
-        if (selectedModule) {
-          fetchArticles(selectedModule.id);
-        }
+        const responseData = await response.json();
+        console.log('Articles reordered successfully:', responseData);
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
         console.error('Failed to reorder articles:', errorData);
-        alert('Failed to reorder articles. Please try again.');
+        alert(`Failed to reorder articles: ${errorData.error || 'Unknown error'}`);
         // Refresh articles to restore original order
         if (selectedModule) {
           fetchArticles(selectedModule.id);
@@ -1313,9 +1336,16 @@ const AdminPanel: React.FC<{
                     const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
                     const targetIndex = index;
                     
-                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0) {
+                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0 && draggedIndex < articles.length) {
                       const newArticles = [...articles];
                       const draggedArticle = newArticles[draggedIndex];
+                      
+                      // Validate that the dragged article exists and has an ID
+                      if (!draggedArticle || !draggedArticle.id) {
+                        console.error('Invalid article being dragged');
+                        return;
+                      }
+                      
                       newArticles.splice(draggedIndex, 1);
                       newArticles.splice(targetIndex, 0, draggedArticle);
                       
