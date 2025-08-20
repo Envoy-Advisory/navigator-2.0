@@ -1208,15 +1208,29 @@ const AdminPanel: React.FC<{
         return;
       }
 
-      // Validate that all articles have valid IDs
-      const invalidArticles = reorderedArticles.filter(article => !article.id || typeof article.id !== 'number');
-      if (invalidArticles.length > 0) {
-        console.error('Invalid articles found:', invalidArticles);
-        alert('Some articles have invalid data. Please refresh and try again.');
+      // Convert string IDs to numbers if necessary and validate
+      const validArticles = reorderedArticles.map(article => ({
+        ...article,
+        id: typeof article.id === 'string' ? parseInt(article.id, 10) : article.id
+      })).filter(article => {
+        const isValid = article.id && !isNaN(article.id) && article.id > 0;
+        if (!isValid) {
+          console.warn('Invalid article found:', article);
+        }
+        return isValid;
+      });
+
+      if (validArticles.length === 0) {
+        console.error('No valid articles to reorder');
+        alert('No valid articles found. Please refresh and try again.');
         if (selectedModule) {
           fetchArticles(selectedModule.id);
         }
         return;
+      }
+
+      if (validArticles.length !== reorderedArticles.length) {
+        console.warn(`${reorderedArticles.length - validArticles.length} invalid articles were filtered out`);
       }
 
       const token = localStorage.getItem('authToken');
@@ -1226,7 +1240,7 @@ const AdminPanel: React.FC<{
       }
 
       const requestBody = {
-        articles: reorderedArticles.map((article, index) => ({
+        articles: validArticles.map((article, index) => ({
           id: article.id,
           position: index + 1
         }))
@@ -1246,6 +1260,8 @@ const AdminPanel: React.FC<{
       if (response.ok) {
         const responseData = await response.json();
         console.log('Articles reordered successfully:', responseData);
+        // Update local state with the reordered articles
+        setArticles(validArticles);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
         console.error('Failed to reorder articles:', errorData);
@@ -1336,18 +1352,27 @@ const AdminPanel: React.FC<{
                     const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
                     const targetIndex = index;
                     
-                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0 && draggedIndex < articles.length) {
+                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0 && draggedIndex < articles.length && targetIndex < articles.length) {
                       const newArticles = [...articles];
                       const draggedArticle = newArticles[draggedIndex];
                       
-                      // Validate that the dragged article exists and has an ID
-                      if (!draggedArticle || !draggedArticle.id) {
-                        console.error('Invalid article being dragged');
+                      // Validate that the dragged article exists and has a valid ID
+                      if (!draggedArticle || (!draggedArticle.id && draggedArticle.id !== 0)) {
+                        console.error('Invalid article being dragged:', draggedArticle);
+                        alert('Invalid article data. Please refresh the page and try again.');
+                        return;
+                      }
+                      
+                      // Ensure ID is a number
+                      const articleId = typeof draggedArticle.id === 'string' ? parseInt(draggedArticle.id, 10) : draggedArticle.id;
+                      if (isNaN(articleId) || articleId <= 0) {
+                        console.error('Invalid article ID:', draggedArticle.id);
+                        alert('Invalid article ID. Please refresh the page and try again.');
                         return;
                       }
                       
                       newArticles.splice(draggedIndex, 1);
-                      newArticles.splice(targetIndex, 0, draggedArticle);
+                      newArticles.splice(targetIndex, 0, { ...draggedArticle, id: articleId });
                       
                       // Update local state immediately for responsive UI
                       setArticles(newArticles);
