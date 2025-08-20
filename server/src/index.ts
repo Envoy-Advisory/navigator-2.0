@@ -4,11 +4,12 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import multer from 'multer';
+import sharp from 'sharp';
 import { UserService, OrganizationService, initializeDatabase, closeDatabase, User, prisma } from './database';
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
-const PORT = getEnvVarAsNumber('PORT', 5000);
+const PORT = getEnvVarAsNumber('PORT', 5001);
 
 // JWT secret
 const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
@@ -18,7 +19,10 @@ app.use(cors({
   origin: getEnvVar('CLIENT_URL', 'http://localhost:5173'),
   credentials: true
 }));
-app.use(express.json());
+
+// Reasonable body size limits for compressed images
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Types
 interface JWTPayload {
@@ -539,26 +543,9 @@ app.delete('/api/articles/:id', authenticateToken, requireAdmin, async (req: Aut
 
 // File upload endpoint
 const fs = require('fs');
-const uploadsDir = path.join(__dirname, '../../uploads');
 
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('Created uploads directory:', uploadsDir);
-} else {
-  console.log('Uploads directory exists:', uploadsDir);
-  console.log('Files in uploads:', fs.readdirSync(uploadsDir));
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Use memory storage instead of disk storage for serverless environments
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,
@@ -602,10 +589,10 @@ const upload = multer({
 });
 
 // File upload endpoint
-app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/upload', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const uploadMiddleware = upload.single('file');
 
-  uploadMiddleware(req as any, res as any, (err: any) => {
+  uploadMiddleware(req as any, res as any, async (err: any) => {
     if (err) {
       console.error('Upload error:', err);
       return res.status(400).json({ error: err.message });
@@ -615,32 +602,75 @@ app.post('/api/upload', authenticateToken, requireAdmin, (req: AuthenticatedRequ
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`;
-    console.log('File uploaded successfully:', {
-      originalName: req.file.originalname,
-      savedAs: req.file.filename,
-      url: fileUrl,
-      path: req.file.path
-    });
+    try {
+      let processedBuffer = req.file.buffer;
+      let finalMimetype = req.file.mimetype;
+      
+      // Compress images using sharp
+      if (req.file.mimetype.startsWith('image/')) {
+        console.log('Compressing image:', {
+          originalName: req.file.originalname,
+          originalSize: req.file.size,
+          mimetype: req.file.mimetype
+        });
 
-    res.json({ 
-      message: 'File uploaded successfully',
-      url: fileUrl,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size
-    });
+        // Compress image with sharp
+        processedBuffer = await sharp(req.file.buffer)
+          .resize(1920, 1080, { // Max dimensions
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .jpeg({ 
+            quality: 80, // 80% quality for good balance
+            progressive: true 
+          })
+          .toBuffer();
+        
+        finalMimetype = 'image/jpeg'; // Convert all images to JPEG for consistency
+        
+        console.log('Image compressed:', {
+          originalSize: req.file.size,
+          compressedSize: processedBuffer.length,
+          compressionRatio: ((req.file.size - processedBuffer.length) / req.file.size * 100).toFixed(1) + '%'
+        });
+      }
+
+      // Convert buffer to base64
+      const base64Data = processedBuffer.toString('base64');
+      const dataUrl = `data:${finalMimetype};base64,${base64Data}`;
+      
+      console.log('File processed successfully:', {
+        originalName: req.file.originalname,
+        finalMimetype,
+        originalSize: req.file.size,
+        finalSize: processedBuffer.length,
+        dataUrlLength: dataUrl.length
+      });
+
+      res.json({ 
+        message: 'File uploaded successfully',
+        url: dataUrl,
+        originalName: req.file.originalname,
+        originalSize: req.file.size,
+        compressedSize: processedBuffer.length,
+        mimetype: finalMimetype
+      });
+    } catch (compressionError) {
+      console.error('Image compression error:', compressionError);
+      // Fallback to original file if compression fails
+      const base64Data = req.file.buffer.toString('base64');
+      const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+      
+      res.json({ 
+        message: 'File uploaded successfully (compression failed, using original)',
+        url: dataUrl,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    }
   });
 });
-
-// Serve uploaded files through API endpoint with CORS
-app.use('/api/uploads', (req: Request, res: Response, next: NextFunction) => {
-  // Set CORS headers for file serving
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-}, express.static(path.join(__dirname, '../../uploads')));
 
 // Initialize database on startup
 initializeDatabase().catch((error) => {

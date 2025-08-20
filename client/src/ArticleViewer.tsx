@@ -107,9 +107,20 @@ const ArticleViewer: React.FC = () => {
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto;" />');
 
-    // Use relative URLs for uploads - let the proxy/routing handle it
-    formatted = formatted.replace(/src="\/uploads\//g, 'src="/api/uploads/');
-    formatted = formatted.replace(/src="uploads\//g, 'src="/api/uploads/');
+    // Handle both data URLs and traditional file paths
+    // Only convert relative URLs to API endpoints, leave data URLs unchanged
+    formatted = formatted.replace(/src="\/uploads\//g, (match, offset, string) => {
+      // Check if this is part of a data URL
+      const beforeMatch = string.substring(Math.max(0, offset - 50), offset);
+      if (beforeMatch.includes('data:')) return match;
+      return 'src="/api/uploads/';
+    });
+    formatted = formatted.replace(/src="uploads\//g, (match, offset, string) => {
+      // Check if this is part of a data URL
+      const beforeMatch = string.substring(Math.max(0, offset - 50), offset);
+      if (beforeMatch.includes('data:')) return match;
+      return 'src="/api/uploads/';
+    });
     
     return formatted;
   };
