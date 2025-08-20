@@ -523,7 +523,6 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
 
 // File upload endpoint
 const fs = require('fs');
-const path = require('path');
 const uploadsDir = path.join(__dirname, '../../uploads');
 
 // Create uploads directory if it doesn't exist
