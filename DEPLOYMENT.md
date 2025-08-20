@@ -60,7 +60,7 @@ Before running any setup scripts, create and update the appropriate environment 
 - `DATABASE_URL`: PostgreSQL connection string
 - `JWT_SECRET`: Secret key for JWT tokens (use strong, unique keys for each environment)
 - `NODE_ENV`: Environment mode
-- `PORT`: Server port (default: 5000)
+- `PORT`: Server port (default: 5001)
 - `CLIENT_URL`: Frontend URL for CORS configuration
 
 **Local Development Database Setup:**
@@ -191,7 +191,7 @@ npm run db:seed
 
 - **Local**: 
   - Client: http://localhost:5173
-  - Server: http://localhost:5000
+  - Server: http://localhost:5001
 - **DEV**: Configure your development server URLs
 - **UAT**: Configure your UAT server URLs
 - **PROD**: Configure your production URLs
