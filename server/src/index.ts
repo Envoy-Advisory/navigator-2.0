@@ -458,13 +458,15 @@ app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: Au
 
     console.log('Reordering articles:', articles);
 
-    // Validate that all articles have required fields
+    // Validate that all articles have required fields for reordering
     for (const article of articles) {
-      if (!article.id || typeof article.id !== 'number') {
-        return res.status(400).json({ error: 'Each article must have a valid numeric id' });
+      if (!article.id || typeof article.id !== 'number' || article.id <= 0) {
+        console.error('Invalid article ID:', article);
+        return res.status(400).json({ error: 'Invalid article ID' });
       }
       if (typeof article.position !== 'number' || article.position < 1) {
-        return res.status(400).json({ error: 'Each article must have a valid position (number >= 1)' });
+        console.error('Invalid article position:', article);
+        return res.status(400).json({ error: 'Invalid article position' });
       }
     }
 
