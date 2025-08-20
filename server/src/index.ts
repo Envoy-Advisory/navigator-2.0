@@ -8,7 +8,7 @@ import { UserService, OrganizationService, initializeDatabase, closeDatabase, Us
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
-const PORT = getEnvVarAsNumber('PORT', 5000);
+const PORT = getEnvVarAsNumber('PORT', 5001);
 
 // JWT secret
 const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
@@ -210,7 +210,7 @@ app.get('/api/modules/:moduleId/articles/public', async (req: Request, res: Resp
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
       orderBy: [
-        { position: 'asc' },
+        { position: 'asc' } as any,
         { created_at: 'asc' }
       ]
     });
@@ -359,7 +359,7 @@ app.get('/api/modules/:moduleId/articles', authenticateToken, requireAdmin, asyn
     const articles = await prisma.article.findMany({
       where: { moduleId: parseInt(moduleId) },
       orderBy: [
-        { position: 'asc' },
+        { position: 'asc' } as any,
         { created_at: 'asc' }
       ]
     });
@@ -379,18 +379,112 @@ app.post('/api/articles', authenticateToken, requireAdmin, async (req: Authentic
       return res.status(400).json({ error: 'Module ID, article name, and content are required' });
     }
 
+    // Find the highest position in this module to assign the next position
+    const lastArticle = await prisma.article.findFirst({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: { position: 'desc' } as any,
+      select: { position: true } as any
+    });
+
+    const nextPosition = ((lastArticle as any)?.position || 0) + 1;
+
     const article = await prisma.article.create({
       data: {
         moduleId: parseInt(moduleId),
         articleName,
-        content
-      }
+        content,
+        position: nextPosition
+      } as any
     });
 
     res.status(201).json(article);
   } catch (error) {
     console.error('Error creating article:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Article reordering endpoint - MUST come before parameterized routes
+app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    console.log('Reorder request body:', JSON.stringify(req.body, null, 2));
+    const { articles } = req.body;
+
+    if (!articles || !Array.isArray(articles)) {
+      console.error('Articles validation failed - not array:', articles);
+      return res.status(400).json({ error: 'Articles array is required' });
+    }
+
+    if (articles.length === 0) {
+      console.error('Articles validation failed - empty array');
+      return res.status(400).json({ error: 'Articles array cannot be empty' });
+    }
+
+    console.log('Reordering articles:', articles);
+
+    // Validate that all articles have required fields for reordering
+    for (const article of articles) {
+      console.log('Validating article:', article);
+      if (!article.id || typeof article.id !== 'number' || article.id <= 0) {
+        console.error('Invalid article ID:', article);
+        return res.status(400).json({ error: 'Invalid article ID' });
+      }
+      if (typeof article.position !== 'number' || article.position < 1) {
+        console.error('Invalid article position:', article);
+        return res.status(400).json({ error: 'Invalid article position' });
+      }
+    }
+
+    // Check if all articles exist before updating
+    const articleIds = articles.map((article: { id: number; position: number }) => article.id);
+    const existingArticles = await prisma.article.findMany({
+      where: { id: { in: articleIds } },
+      select: { id: true }
+    });
+
+    if (existingArticles.length !== articles.length) {
+      const existingIds = existingArticles.map(a => a.id);
+      const missingIds = articleIds.filter(id => !existingIds.includes(id));
+      return res.status(400).json({ 
+        error: `Articles not found: ${missingIds.join(', ')}` 
+      });
+    }
+
+    // Update article positions in a transaction
+    const updatePromises = articles.map((article: { id: number; position: number }) => {
+      console.log(`Updating article ${article.id} to position ${article.position}`);
+      return prisma.article.update({
+        where: { id: article.id },
+        data: { position: article.position } as any
+      });
+    });
+
+    const results = await prisma.$transaction(updatePromises);
+    console.log('Article reordering completed:', results.length, 'articles updated');
+
+    res.json({ 
+      message: 'Articles reordered successfully',
+      updatedCount: results.length,
+      articles: results.map(article => ({
+        id: article.id,
+        position: (article as any).position
+      }))
+    });
+  } catch (error) {
+    console.error('Error reordering articles:', error);
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Record to update not found')) {
+        res.status(404).json({ error: 'One or more articles not found' });
+      } else if (error.message.includes('Unique constraint')) {
+        res.status(400).json({ error: 'Position conflict detected' });
+      } else {
+        res.status(500).json({ error: `Server error: ${error.message}` });
+      }
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 });
 
@@ -440,86 +534,6 @@ app.delete('/api/articles/:id', authenticateToken, requireAdmin, async (req: Aut
   } catch (error) {
     console.error('Error deleting article:', error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Article reordering endpoint
-app.put('/api/articles/reorder', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { articles } = req.body;
-
-    if (!articles || !Array.isArray(articles)) {
-      return res.status(400).json({ error: 'Articles array is required' });
-    }
-
-    if (articles.length === 0) {
-      return res.status(400).json({ error: 'Articles array cannot be empty' });
-    }
-
-    console.log('Reordering articles:', articles);
-
-    // Validate that all articles have required fields for reordering
-    for (const article of articles) {
-      if (!article.id || typeof article.id !== 'number' || article.id <= 0) {
-        console.error('Invalid article ID:', article);
-        return res.status(400).json({ error: 'Invalid article ID' });
-      }
-      if (typeof article.position !== 'number' || article.position < 1) {
-        console.error('Invalid article position:', article);
-        return res.status(400).json({ error: 'Invalid article position' });
-      }
-    }
-
-    // Check if all articles exist before updating
-    const articleIds = articles.map((article: { id: number; position: number }) => article.id);
-    const existingArticles = await prisma.article.findMany({
-      where: { id: { in: articleIds } },
-      select: { id: true }
-    });
-
-    if (existingArticles.length !== articles.length) {
-      const existingIds = existingArticles.map(a => a.id);
-      const missingIds = articleIds.filter(id => !existingIds.includes(id));
-      return res.status(400).json({ 
-        error: `Articles not found: ${missingIds.join(', ')}` 
-      });
-    }
-
-    // Update article positions in a transaction
-    const updatePromises = articles.map((article: { id: number; position: number }) => {
-      console.log(`Updating article ${article.id} to position ${article.position}`);
-      return prisma.article.update({
-        where: { id: article.id },
-        data: { position: article.position }
-      });
-    });
-
-    const results = await prisma.$transaction(updatePromises);
-    console.log('Article reordering completed:', results.length, 'articles updated');
-
-    res.json({ 
-      message: 'Articles reordered successfully',
-      updatedCount: results.length,
-      articles: results.map(article => ({
-        id: article.id,
-        position: article.position
-      }))
-    });
-  } catch (error) {
-    console.error('Error reordering articles:', error);
-
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes('Record to update not found')) {
-        res.status(404).json({ error: 'One or more articles not found' });
-      } else if (error.message.includes('Unique constraint')) {
-        res.status(400).json({ error: 'Position conflict detected' });
-      } else {
-        res.status(500).json({ error: `Server error: ${error.message}` });
-      }
-    } else {
-      res.status(500).json({ error: 'Internal server error' });
-    }
   }
 });
 

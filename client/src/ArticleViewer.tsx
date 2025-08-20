@@ -14,6 +14,7 @@ interface CMSArticle {
   moduleId: number;
   articleName: string;
   content: string;
+  position?: number;
 }
 
 const ArticleViewer: React.FC = () => {

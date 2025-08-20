@@ -1001,6 +1001,7 @@ interface CMSArticle {
   moduleId: number;
   articleName: string;
   content: string;
+  position?: number;
 }
 
 const AdminPanel: React.FC<{
@@ -1202,6 +1203,8 @@ const AdminPanel: React.FC<{
 
   const handleReorderArticles = async (reorderedArticles: CMSArticle[]) => {
     try {
+      console.log('handleReorderArticles called with:', reorderedArticles);
+      
       // Validate input data
       if (!reorderedArticles || reorderedArticles.length === 0) {
         console.error('No articles to reorder');
@@ -1209,13 +1212,41 @@ const AdminPanel: React.FC<{
       }
 
       // Convert string IDs to numbers if necessary and validate
-      const validArticles = reorderedArticles.map(article => ({
-        ...article,
-        id: typeof article.id === 'string' ? parseInt(article.id, 10) : article.id
-      })).filter(article => {
-        const isValid = article.id && !isNaN(article.id) && article.id > 0;
+      const validArticles = reorderedArticles.map(article => {
+        console.log('Processing article:', article);
+        
+        // Skip any non-article objects
+        if (!article || typeof article !== 'object') {
+          console.warn('Skipping non-object:', article);
+          return null;
+        }
+        
+        // Skip objects that don't look like articles
+        if (typeof article.id === 'string' && article.id === 'reorder') {
+          console.warn('Skipping reorder object:', article);
+          return null;
+        }
+        
+        return {
+          ...article,
+          id: typeof article.id === 'string' ? parseInt(article.id, 10) : article.id
+        };
+      }).filter((article): article is CMSArticle => {
+        if (!article) return false;
+        
+        const hasValidId = article.id && !isNaN(article.id) && article.id > 0;
+        const hasArticleName = !!article.articleName;
+        const hasContent = !!article.content;
+        const hasModuleId = !!article.moduleId;
+        
+        const isValid = !!hasValidId && hasArticleName && hasContent && hasModuleId;
+        
         if (!isValid) {
           console.warn('Invalid article found:', article);
+          console.warn('ID valid:', !!hasValidId, 'ID:', article.id);
+          console.warn('Has articleName:', hasArticleName, 'articleName:', article.articleName);
+          console.warn('Has content:', hasContent, 'content length:', article.content?.length);
+          console.warn('Has moduleId:', hasModuleId, 'moduleId:', article.moduleId);
         }
         return isValid;
       });
@@ -1356,6 +1387,9 @@ const AdminPanel: React.FC<{
                       const newArticles = [...articles];
                       const draggedArticle = newArticles[draggedIndex];
                       
+                      console.log('Drag and drop - draggedArticle:', draggedArticle);
+                      console.log('Drag and drop - all articles:', articles);
+                      
                       // Validate that the dragged article exists and has a valid ID
                       if (!draggedArticle || (!draggedArticle.id && draggedArticle.id !== 0)) {
                         console.error('Invalid article being dragged:', draggedArticle);
@@ -1371,8 +1405,18 @@ const AdminPanel: React.FC<{
                         return;
                       }
                       
+                      // Create the reordered article with validated data
+                      const reorderedArticle = {
+                        id: articleId,
+                        moduleId: draggedArticle.moduleId,
+                        articleName: draggedArticle.articleName,
+                        content: draggedArticle.content
+                      };
+                      
                       newArticles.splice(draggedIndex, 1);
-                      newArticles.splice(targetIndex, 0, { ...draggedArticle, id: articleId });
+                      newArticles.splice(targetIndex, 0, reorderedArticle);
+                      
+                      console.log('New articles after reorder:', newArticles);
                       
                       // Update local state immediately for responsive UI
                       setArticles(newArticles);
