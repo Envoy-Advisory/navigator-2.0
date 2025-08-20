@@ -48,7 +48,7 @@ The server folder contains an Express.js API server built with TypeScript.
 **Available Scripts:**
 ```bash
 cd server
-npm run dev      # Start development server with nodemon on port 5001
+npm run dev      # Start development server with nodemon on port 5000
 npm run build    # Compile TypeScript to JavaScript
 npm run start    # Start production server
 npm run watch    # Watch mode for TypeScript compilation
@@ -87,7 +87,7 @@ npm run watch    # Watch mode for TypeScript compilation
 
 3. **Access the application:**
    - Frontend: Available through the Replit webview
-   - Backend API: `http://localhost:5001/api`
+   - Backend API: `http://localhost:5000/api`
 
 ### Environment Variables
 
@@ -98,7 +98,7 @@ The server uses the following environment variables:
 
 ## Development Workflow
 
-- The client runs on port 5173 and proxies API calls to the server on port 5001
+- The client runs on port 5173 and proxies API calls to the server on port 5000
 - Both servers support hot reloading for rapid development
 - TypeScript provides type safety across the entire stack
 - The database tables are automatically created on server startup

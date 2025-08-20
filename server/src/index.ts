@@ -8,7 +8,7 @@ import { UserService, OrganizationService, initializeDatabase, closeDatabase, Us
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
-const PORT = getEnvVarAsNumber('PORT', 5001);
+const PORT = getEnvVarAsNumber('PORT', 5000);
 
 // JWT secret
 const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
