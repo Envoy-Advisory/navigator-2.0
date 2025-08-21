@@ -248,6 +248,42 @@ app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
   }
 });
 
+// Authenticated user endpoints (require login but not admin)
+app.get('/api/modules/authenticated', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const modules = await prisma.module.findMany({
+      orderBy: [
+        { moduleNumber: 'asc' },
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(modules);
+  } catch (error) {
+    console.error('Error fetching authenticated modules:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/modules/:moduleId/articles/authenticated', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+
+    const articles = await prisma.article.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: [
+        { position: 'asc' } as any,
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(articles);
+  } catch (error) {
+    console.error('Error fetching authenticated articles:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Promote user to admin (for testing - remove in production)
 app.post('/api/promote-admin', async (req: Request, res: Response) => {
   try {

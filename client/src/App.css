@@ -1386,6 +1386,8 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-top: 2rem;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .modules-panel, .articles-panel {
@@ -1393,6 +1395,10 @@ body {
   border-radius: 8px;
   background: white;
   overflow: hidden;
+  min-width: 0; /* Allows flex items to shrink below their content size */
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header {
@@ -1474,6 +1480,8 @@ body {
 .articles-list {
   max-height: 500px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .article-item {
@@ -1482,17 +1490,35 @@ body {
   align-items: flex-start;
   padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* Allows flex items to shrink */
 }
 
 .article-info {
   flex: 1;
   margin-right: 1rem;
+  min-width: 0; /* Allows content to shrink and wrap */
+  overflow: hidden;
 }
 
 .article-info h4 {
   margin: 0 0 0.5rem 0;
   color: #333;
   font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* For very long titles on larger screens */
+@media (min-width: 769px) {
+  .article-info h4 {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 2rem); /* Account for button space */
+  }
 }
 
 .article-info p {
@@ -1500,12 +1526,16 @@ body {
   color: #666;
   font-size: 0.9rem;
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .article-actions {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+  min-width: fit-content;
+  align-items: flex-start;
 }
 
 /* Button Styles */
@@ -1580,6 +1610,8 @@ body {
   border: 1px solid #e0e0e0;
   border-bottom: none;
   border-radius: 8px 8px 0 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .toolbar-group {
@@ -1618,6 +1650,8 @@ body {
   position: relative;
   border: 1px solid #e0e0e0;
   border-radius: 0 0 8px 8px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .content-editor-container.dragging {
@@ -1634,6 +1668,11 @@ body {
   font-family: 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.5;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .drop-overlay {
@@ -1755,6 +1794,8 @@ body {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .form-actions {
@@ -1857,6 +1898,88 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
+}
+
+/* Responsive Design for CMS */
+@media (max-width: 1024px) {
+  .cms-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .container {
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .cms-layout {
+    margin-top: 1rem;
+  }
+  
+  .panel-header {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .panel-header h3 {
+    text-align: center;
+  }
+  
+  #content-editor {
+    font-size: 13px;
+    padding: 0.75rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .rich-text-toolbar {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  /* Article item mobile adjustments */
+  .article-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .article-info {
+    margin-right: 0;
+  }
+  
+  .article-info h4 {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+  }
+  
+  .article-actions {
+    align-self: flex-end;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+/* Prevent horizontal overflow on all screen sizes */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.App {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .cancel-btn:hover {

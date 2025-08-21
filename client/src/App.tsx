@@ -307,7 +307,9 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<HomePage testimonials={testimonials} />} />
           <Route path="/program" element={<ProgramPage />} />
-          <Route path="/articles" element={<ArticleViewer />} />
+          <Route path="/articles" element={
+            currentUser ? <ArticleViewer currentUser={currentUser} /> : <Redirect to="/" />
+          } />
           <Route path="/dashboard" element={
             currentUser ? <Dashboard currentUser={currentUser} modules={modules} /> : <Redirect to="/" />
           } />

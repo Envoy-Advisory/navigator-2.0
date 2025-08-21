@@ -2,6 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import './ArticleViewer.css';
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'employer' | 'user';
+  organization?: string;
+  organizationId?: string;
+  createdAt: Date;
+  lastLogin: Date;
+}
+
 interface CMSModule {
   id: number;
   moduleNumber: number;
@@ -17,7 +28,11 @@ interface CMSArticle {
   position?: number;
 }
 
-const ArticleViewer: React.FC = () => {
+interface ArticleViewerProps {
+  currentUser: User;
+}
+
+const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
   const [modules, setModules] = useState<CMSModule[]>([]);
   const [selectedModule, setSelectedModule] = useState<CMSModule | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<CMSArticle | null>(null);
@@ -31,16 +46,19 @@ const ArticleViewer: React.FC = () => {
 
   const fetchModules = async () => {
     try {
-      // For now, we'll use the same endpoint but without authentication
-      // In a real implementation, you'd create a public endpoint
-      const response = await fetch('/api/modules/public');
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/modules/authenticated', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
         setModules(data);
       } else {
-        // Fallback to the authenticated endpoint for now
-        console.log('Public endpoint not available, using authenticated endpoint');
+        console.error('Failed to fetch modules');
       }
     } catch (error) {
       console.error('Error fetching modules:', error);
@@ -52,9 +70,13 @@ const ArticleViewer: React.FC = () => {
   const fetchArticles = async (moduleId: number) => {
     setArticlesLoading(true);
     try {
-      // For now, we'll use the same endpoint but without authentication
-      // In a real implementation, you'd create a public endpoint
-      const response = await fetch(`/api/modules/${moduleId}/articles/public`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/modules/${moduleId}/articles/authenticated`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (response.ok) {
         const articles = await response.json();
@@ -64,7 +86,7 @@ const ArticleViewer: React.FC = () => {
             : module
         ));
       } else {
-        console.log('Public articles endpoint not available');
+        console.error('Failed to fetch articles');
       }
     } catch (error) {
       console.error('Error fetching articles:', error);
