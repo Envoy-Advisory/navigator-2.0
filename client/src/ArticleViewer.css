@@ -49,6 +49,11 @@
 
 .module-nav-item {
   border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.module-nav-item:hover {
+  background: #fafafa;
 }
 
 .module-nav-button {
@@ -65,6 +70,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.module-nav-button::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid #ccc;
+  border-bottom: 2px solid #ccc;
+  transform: rotate(-45deg);
+  transition: all 0.2s ease;
+  margin-left: 1rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.module-nav-button[aria-expanded="true"]::after {
+  transform: rotate(45deg);
+  opacity: 0.9;
 }
 
 .module-nav-button:hover {
@@ -85,10 +109,13 @@
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: bold;
+  margin-right: auto;
+  display: none; /* Hide the module number badge for cleaner look */
 }
 
 .module-nav-button.active .module-number {
   background: #1976d2;
+  display: none; /* Hide the module number badge for cleaner look */
 }
 
 .articles-submenu {
@@ -96,6 +123,7 @@
   border-left: 4px solid #e0e0e0;
   max-height: 300px;
   overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
 .article-nav-item {
@@ -108,23 +136,26 @@
   color: #666;
   text-decoration: none;
   font-size: 0.9rem;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
+  position: relative;
 }
 
 .article-nav-item:hover {
-  background: white;
+  background: #ffffff;
   color: #667eea;
-  padding-left: 3.5rem;
+  padding-left: 3.2rem;
+  border-left: 3px solid #667eea;
 }
 
 .article-nav-item.active {
-  background: white;
+  background: #ffffff;
   color: #1976d2;
   font-weight: 500;
-  padding-left: 3.5rem;
-  border-left: 4px solid #1976d2;
+  padding-left: 3.2rem;
+  border-left: 3px solid #1976d2;
+  box-shadow: inset 0 0 0 1px rgba(25, 118, 210, 0.1);
 }
 
 .article-content {
@@ -358,9 +389,14 @@
 }
 
 /* Article Navigation States */
-.module-nav-button[aria-expanded="true"] .module-number::after {
-  content: " ▼";
-  font-size: 0.7rem;
+.module-nav-button:hover::after {
+  border-color: #667eea;
+  opacity: 1;
+}
+
+.module-nav-button.active::after {
+  border-color: #1976d2;
+  opacity: 1;
 }
 
 /* Responsive Design for Article Viewer */
@@ -502,9 +538,4 @@
 .article-body code {
   overflow-x: auto;
   max-width: 100%;
-}
-
-.module-nav-button[aria-expanded="false"] .module-number::after {
-  content: " ▶";
-  font-size: 0.7rem;
 }

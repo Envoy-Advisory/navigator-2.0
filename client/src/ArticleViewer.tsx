@@ -175,7 +175,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
                 aria-expanded={expandedModules.has(module.id)}
               >
                 <span>
-                  Module {module.moduleNumber}: {module.moduleName}
+                  {module.moduleName}
                 </span>
                 <span className="module-number">{module.moduleNumber}</span>
               </button>
@@ -215,7 +215,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
             <header className="article-content-header">
               <h1>{selectedArticle.articleName}</h1>
               <p className="article-breadcrumb">
-                Module {selectedModule?.moduleNumber}: {selectedModule?.moduleName}
+                {selectedModule?.moduleName}
                 <span className="breadcrumb-separator">›</span>
                 {selectedArticle.articleName}
               </p>
