@@ -1660,12 +1660,13 @@ const ArticleForm: React.FC<{
 
       if (response.ok) {
         const data = await response.json();
-        const fileUrl = data.url;
+        const fileInfo = data.file;
+        const fileUrl = fileInfo.url;
         
         if (file.type.startsWith('image/')) {
-          insertAtCursor(`<img src="${fileUrl}" alt="${file.name}" style="max-width: 100%; height: auto;" />`);
+          insertAtCursor(`<img src="${fileUrl}" alt="${fileInfo.originalName}" style="max-width: 100%; height: auto;" />`);
         } else {
-          insertAtCursor(`[${file.name}](${fileUrl})`);
+          insertAtCursor(`[${fileInfo.originalName}](${fileUrl})`);
         }
       } else {
         alert('Failed to upload file');

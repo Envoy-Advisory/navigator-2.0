@@ -578,9 +578,8 @@ app.delete('/api/articles/:id', authenticateToken, requireAdmin, async (req: Aut
 });
 
 // File upload endpoint
-const fs = require('fs');
 
-// Use memory storage instead of disk storage for serverless environments
+// Use memory storage for serverless environments
 const storage = multer.memoryStorage();
 
 const upload = multer({ 
@@ -624,6 +623,33 @@ const upload = multer({
   }
 });
 
+// File service functions
+const saveFileToDatabase = async (fileData: {
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  data: Buffer;
+  uploadedBy?: number;
+}) => {
+  try {
+    const file = await prisma.file.create({
+      data: {
+        filename: fileData.filename,
+        originalName: fileData.originalName,
+        mimeType: fileData.mimeType,
+        size: fileData.size,
+        data: fileData.data,
+        uploadedBy: fileData.uploadedBy
+      }
+    });
+    return file;
+  } catch (error) {
+    console.error('Error saving file to database:', error);
+    throw error;
+  }
+};
+
 // File upload endpoint
 app.post('/api/upload', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const uploadMiddleware = upload.single('file');
@@ -652,17 +678,17 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
 
         // Compress image with sharp
         processedBuffer = await sharp(req.file.buffer)
-          .resize(1920, 1080, { // Max dimensions
+          .resize(1920, 1080, {
             fit: 'inside',
             withoutEnlargement: true
           })
           .jpeg({ 
-            quality: 80, // 80% quality for good balance
+            quality: 80,
             progressive: true 
           })
           .toBuffer();
         
-        finalMimetype = 'image/jpeg'; // Convert all images to JPEG for consistency
+        finalMimetype = 'image/jpeg';
         
         console.log('Image compressed:', {
           originalSize: req.file.size,
@@ -671,41 +697,114 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
         });
       }
 
-      // Convert buffer to base64
-      const base64Data = processedBuffer.toString('base64');
-      const dataUrl = `data:${finalMimetype};base64,${base64Data}`;
-      
-      console.log('File processed successfully:', {
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const extension = path.extname(req.file.originalname);
+      const filename = `file-${timestamp}-${randomSuffix}${extension}`;
+
+      // Save file to database
+      const fileRecord = await saveFileToDatabase({
+        filename: filename,
         originalName: req.file.originalname,
-        finalMimetype,
-        originalSize: req.file.size,
-        finalSize: processedBuffer.length,
-        dataUrlLength: dataUrl.length
+        mimeType: finalMimetype,
+        size: processedBuffer.length,
+        data: processedBuffer,
+        uploadedBy: req.user?.userId
+      });
+      
+      console.log('File uploaded and saved to database:', {
+        id: fileRecord.id,
+        filename: fileRecord.filename,
+        originalName: fileRecord.originalName,
+        size: fileRecord.size
       });
 
       res.json({ 
         message: 'File uploaded successfully',
-        url: dataUrl,
-        originalName: req.file.originalname,
-        originalSize: req.file.size,
-        compressedSize: processedBuffer.length,
-        mimetype: finalMimetype
+        file: {
+          id: fileRecord.id,
+          filename: fileRecord.filename,
+          originalName: fileRecord.originalName,
+          url: `/api/files/${fileRecord.id}`,
+          size: fileRecord.size,
+          mimeType: fileRecord.mimeType
+        }
       });
-    } catch (compressionError) {
-      console.error('Image compression error:', compressionError);
-      // Fallback to original file if compression fails
-      const base64Data = req.file.buffer.toString('base64');
-      const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+    } catch (error) {
+      console.error('File upload error:', error);
       
-      res.json({ 
-        message: 'File uploaded successfully (compression failed, using original)',
-        url: dataUrl,
-        originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+      res.status(500).json({ 
+        error: 'Failed to save file',
+        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
+});
+
+// Serve uploaded files from database
+app.get('/api/files/:id', async (req: Request, res: Response) => {
+  try {
+    const fileId = parseInt(req.params.id);
+    
+    if (isNaN(fileId)) {
+      return res.status(400).json({ error: 'Invalid file ID' });
+    }
+    
+    // Find file in database
+    const fileRecord = await prisma.file.findUnique({
+      where: { id: fileId }
+    });
+    
+    if (!fileRecord) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', fileRecord.mimeType);
+    res.setHeader('Content-Length', fileRecord.size);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Content-Disposition', `inline; filename="${fileRecord.originalName}"`);
+    
+    // Send binary data
+    res.end(fileRecord.data);
+    
+  } catch (error) {
+    console.error('Error serving file:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get file metadata
+app.get('/api/files/:id/info', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const fileId = parseInt(req.params.id);
+    
+    if (isNaN(fileId)) {
+      return res.status(400).json({ error: 'Invalid file ID' });
+    }
+    
+    const fileRecord = await prisma.file.findUnique({
+      where: { id: fileId },
+      select: {
+        id: true,
+        filename: true,
+        originalName: true,
+        mimeType: true,
+        size: true,
+        created_at: true
+      }
+    });
+    
+    if (!fileRecord) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    res.json(fileRecord);
+  } catch (error) {
+    console.error('Error getting file info:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Initialize database on startup

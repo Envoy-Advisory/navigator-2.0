@@ -54,3 +54,18 @@ model Article {
 
   @@map("articles")
 }
+
+model File {
+  id           Int       @id @default(autoincrement())
+  filename     String    @db.VarChar(255)
+  originalName String    @db.VarChar(255)
+  mimeType     String    @db.VarChar(100)
+  size         Int
+  data         Bytes
+  uploadedBy   Int?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([filename], map: "idx_files_filename")
+  @@index([uploadedBy], map: "idx_files_uploaded_by")
+  @@map("files")
+}
