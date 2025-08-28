@@ -368,16 +368,16 @@ app.put('/api/forms/reorder', authenticateToken, async (req: Request, res: Respo
 });
 
 // Form response routes
-app.get('/api/forms/:formId/response', authenticateToken, async (req: Request, res: Response) => {
+app.get('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { formId } = req.params;
-    const user = req.user as any;
+    const user = req.user!;
 
     const response = await prisma.formResponse.findUnique({
       where: {
         formId_userId: {
           formId: parseInt(formId),
-          userId: user.id
+          userId: user.userId
         }
       }
     });
@@ -389,17 +389,17 @@ app.get('/api/forms/:formId/response', authenticateToken, async (req: Request, r
   }
 });
 
-app.post('/api/forms/:formId/response', authenticateToken, async (req: Request, res: Response) => {
+app.post('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { formId } = req.params;
     const { answers } = req.body;
-    const user = req.user as any;
+    const user = req.user!;
 
     const response = await prisma.formResponse.upsert({
       where: {
         formId_userId: {
           formId: parseInt(formId),
-          userId: user.id
+          userId: user.userId
         }
       },
       update: {
@@ -408,7 +408,7 @@ app.post('/api/forms/:formId/response', authenticateToken, async (req: Request, 
       },
       create: {
         formId: parseInt(formId),
-        userId: user.id,
+        userId: user.userId,
         answers
       }
     });
