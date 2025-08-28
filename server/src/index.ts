@@ -248,6 +248,178 @@ app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
   }
 });
 
+// Form routes
+app.get('/api/modules/:moduleId/forms', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+
+    const forms = await prisma.form.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: [
+        { position: 'asc' } as any,
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/modules/:moduleId/forms/authenticated', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+
+    const forms = await prisma.form.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: [
+        { position: 'asc' } as any,
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching authenticated forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/forms', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId, formName, questions } = req.body;
+
+    const form = await prisma.form.create({
+      data: {
+        moduleId: parseInt(moduleId),
+        formName,
+        questions,
+        position: 0
+      }
+    });
+
+    res.status(201).json(form);
+  } catch (error) {
+    console.error('Error creating form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/forms/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { formName, questions } = req.body;
+
+    const form = await prisma.form.update({
+      where: { id: parseInt(id) },
+      data: {
+        formName,
+        questions,
+        updated_at: new Date()
+      }
+    });
+
+    res.json(form);
+  } catch (error) {
+    console.error('Error updating form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/forms/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.form.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ message: 'Form deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/forms/reorder', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { forms } = req.body;
+
+    if (!forms || !Array.isArray(forms)) {
+      return res.status(400).json({ error: 'Invalid forms data' });
+    }
+
+    await Promise.all(
+      forms.map((form: any) =>
+        prisma.form.update({
+          where: { id: form.id },
+          data: { position: form.position }
+        })
+      )
+    );
+
+    res.json({ message: 'Forms reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Form response routes
+app.get('/api/forms/:formId/response', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { formId } = req.params;
+    const user = req.user as any;
+
+    const response = await prisma.formResponse.findUnique({
+      where: {
+        formId_userId: {
+          formId: parseInt(formId),
+          userId: user.id
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/forms/:formId/response', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { formId } = req.params;
+    const { answers } = req.body;
+    const user = req.user as any;
+
+    const response = await prisma.formResponse.upsert({
+      where: {
+        formId_userId: {
+          formId: parseInt(formId),
+          userId: user.id
+        }
+      },
+      update: {
+        answers,
+        updated_at: new Date()
+      },
+      create: {
+        formId: parseInt(formId),
+        userId: user.id,
+        answers
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error saving form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Authenticated user endpoints (require login but not admin)
 app.get('/api/modules/authenticated', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {

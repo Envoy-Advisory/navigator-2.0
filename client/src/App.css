@@ -1906,7 +1906,7 @@ body {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .container {
     padding: 0 1rem;
   }
@@ -1916,50 +1916,50 @@ body {
   .cms-layout {
     margin-top: 1rem;
   }
-  
+
   .panel-header {
     padding: 0.75rem;
     flex-direction: column;
     gap: 0.5rem;
     align-items: stretch;
   }
-  
+
   .panel-header h3 {
     text-align: center;
   }
-  
+
   #content-editor {
     font-size: 13px;
     padding: 0.75rem;
   }
-  
+
   .form-actions {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .rich-text-toolbar {
     flex-wrap: wrap;
     gap: 0.25rem;
   }
-  
+
   /* Article item mobile adjustments */
   .article-item {
     flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
-  
+
   .article-info {
     margin-right: 0;
   }
-  
+
   .article-info h4 {
     white-space: normal;
     overflow: visible;
     text-overflow: initial;
   }
-  
+
   .article-actions {
     align-self: flex-end;
     flex-direction: row;
