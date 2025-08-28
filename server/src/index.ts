@@ -839,7 +839,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
     try {
       let processedBuffer = req.file.buffer;
       let finalMimetype = req.file.mimetype;
-      
+
       // Compress images using sharp
       if (req.file.mimetype.startsWith('image/')) {
         console.log('Compressing image:', {
@@ -859,9 +859,9 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
             progressive: true 
           })
           .toBuffer();
-        
+
         finalMimetype = 'image/jpeg';
-        
+
         console.log('Image compressed:', {
           originalSize: req.file.size,
           compressedSize: processedBuffer.length,
@@ -884,7 +884,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
         data: processedBuffer,
         uploadedBy: req.user?.userId
       });
-      
+
       console.log('File uploaded and saved to database:', {
         id: fileRecord.id,
         filename: fileRecord.filename,
@@ -905,7 +905,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
       });
     } catch (error) {
       console.error('File upload error:', error);
-      
+
       res.status(500).json({ 
         error: 'Failed to save file',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -918,29 +918,29 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
 app.get('/api/files/:id', async (req: Request, res: Response) => {
   try {
     const fileId = parseInt(req.params.id);
-    
+
     if (isNaN(fileId)) {
       return res.status(400).json({ error: 'Invalid file ID' });
     }
-    
+
     // Find file in database
     const fileRecord = await prisma.file.findUnique({
       where: { id: fileId }
     });
-    
+
     if (!fileRecord) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     // Set appropriate headers
     res.setHeader('Content-Type', fileRecord.mimeType);
     res.setHeader('Content-Length', fileRecord.size);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     res.setHeader('Content-Disposition', `inline; filename="${fileRecord.originalName}"`);
-    
+
     // Send binary data
     res.end(fileRecord.data);
-    
+
   } catch (error) {
     console.error('Error serving file:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -951,11 +951,11 @@ app.get('/api/files/:id', async (req: Request, res: Response) => {
 app.get('/api/files/:id/info', authenticateToken, async (req: Request, res: Response) => {
   try {
     const fileId = parseInt(req.params.id);
-    
+
     if (isNaN(fileId)) {
       return res.status(400).json({ error: 'Invalid file ID' });
     }
-    
+
     const fileRecord = await prisma.file.findUnique({
       where: { id: fileId },
       select: {
@@ -967,11 +967,11 @@ app.get('/api/files/:id/info', authenticateToken, async (req: Request, res: Resp
         created_at: true
       }
     });
-    
+
     if (!fileRecord) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     res.json(fileRecord);
   } catch (error) {
     console.error('Error getting file info:', error);

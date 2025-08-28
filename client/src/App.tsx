@@ -1496,8 +1496,8 @@ const AdminPanel: React.FC<{
           {selectedModule && (
             <>
               <div className="content-tabs">
-                <button className={!editingForm ? "active" : ""} onClick={() => setEditingForm(null)}>Articles</button>
-                <button className={editingForm ? "active" : ""} onClick={() => setEditingForm(null)}>Forms</button>
+                <button className={`tab-button ${!editingForm ? "active" : ""}`} onClick={() => setEditingForm(null)}>Articles</button>
+                <button className={`tab-button ${editingForm ? "active" : ""}`} onClick={() => setEditingForm(true)}>Forms</button>
               </div>
 
               {!editingForm ? (
@@ -1974,7 +1974,7 @@ const ArticleForm: React.FC<{
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={15}
-                placeholder="Start typing your article content... You can drag and drop images and files here!"
+                placeholder="Start typing your article content... You can drop and drop images and files here!"
                 required
               />
               {isDragging && (
