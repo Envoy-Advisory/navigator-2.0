@@ -1803,9 +1803,8 @@ body {
   overflow: hidden;
 }
 
-.form-item .drag-handle,
-.forms-list .drag-handle {
-  display: none !important;
+.form-item .drag-handle {
+  display: none;
 }
 
 .form-info {
