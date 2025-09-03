@@ -419,7 +419,7 @@ const Header: React.FC<{
         <Link to="/program" className="nav-link">Program</Link>
         {currentUser && <Link to="/articles" className="nav-link">Articles</Link>}
         {/* Link to Forms */}
-        {currentUser && <Link to="/forms/planning" className="nav-link">Forms</Link>}
+        {currentUser && <Link to="/forms/planning" className="nav-link">Actions</Link>}
         {currentUser && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
         <Link to="/faq" className="nav-link">FAQ</Link>
       </nav>
@@ -1488,7 +1488,7 @@ const AdminPanel: React.FC<{
             {selectedModule && (
               <>
                 <button onClick={() => setShowArticleForm(true)} className="add-btn">+ Add Article</button>
-                <button onClick={() => setShowFormForm(true)} className="add-btn">+ Add Form</button>
+                <button onClick={() => setShowFormForm(true)} className="add-btn">+ Add Action</button>
               </>
             )}
           </div>
@@ -1497,7 +1497,7 @@ const AdminPanel: React.FC<{
             <>
               <div className="content-tabs">
                 <button className={`tab-button ${!editingForm ? "active" : ""}`} onClick={() => setEditingForm(null)}>Articles</button>
-                <button className={`tab-button ${editingForm ? "active" : ""}`} onClick={() => setEditingForm(true)}>Forms</button>
+                <button className={`tab-button ${editingForm ? "active" : ""}`} onClick={() => setEditingForm(true)}>Actions</button>
               </div>
 
               {!editingForm ? (
@@ -1577,18 +1577,30 @@ const AdminPanel: React.FC<{
                 </div>
               ) : (
                 <div className="forms-list">
-                  {forms.map((form, index) => (
-                    <div key={form.id} className="form-item">
-                      <div className="form-info">
-                        <h4>{form.title}</h4>
-                        <p>{form.questions.length} questions</p>
-                      </div>
-                      <div className="form-actions">
-                        <button onClick={() => setEditingForm(form)} className="edit-btn">Edit</button>
-                        <button onClick={() => handleDeleteForm(form.id)} className="delete-btn">Delete</button>
-                      </div>
+                  {formsLoading ? (
+                    <div className="loading-forms">
+                      <div className="loading-spinner"></div>
+                      Loading actions...
                     </div>
-                  ))}
+                  ) : forms.length > 0 ? (
+                    forms.map((form, index) => (
+                      <div key={form.id} className="form-item">
+                        <div className="drag-handle">⋮⋮</div>
+                        <div className="form-info">
+                          <h4>{form.title}</h4>
+                          <p>{form.questions.length} questions</p>
+                        </div>
+                        <div className="form-actions">
+                          <button onClick={() => setEditingForm(form)} className="edit-btn">Edit</button>
+                          <button onClick={() => handleDeleteForm(form.id)} className="delete-btn">Delete</button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-content-message">
+                      No actions available for this module yet.
+                    </div>
+                  )}
                 </div>
               )}
             </>
