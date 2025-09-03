@@ -75,9 +75,10 @@ interface Testimonial {
 interface Form {
   id: string;
   moduleId: string;
-  title: string;
+  formName: string;
+  title?: string; // For backwards compatibility
   questions: FormQuestion[];
-  responses: { [userId: string]: FormResponse };
+  responses?: { [userId: string]: FormResponse };
 }
 
 // New interface for FormQuestion
@@ -1056,6 +1057,7 @@ const AdminPanel: React.FC<{
   const [showFormForm, setShowFormForm] = useState(false); // State for showing the form form
   const [articlesLoading, setArticlesLoading] = useState(false);
   const [formsLoading, setFormsLoading] = useState(false); // State for forms loading
+  const [activeTab, setActiveTab] = useState<'articles' | 'actions'>('articles'); // Add activeTab state
 
   // Fetch modules on component mount
   useEffect(() => {
@@ -1273,7 +1275,7 @@ const AdminPanel: React.FC<{
   };
 
   // Handlers for Forms
-  const handleCreateForm = async (formDataToSave: { moduleId: string; title: string; questions: FormQuestion[] }) => {
+  const handleCreateForm = async (formDataToSave: { title: string; questions: FormQuestion[] }) => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('/api/forms', {
@@ -1282,12 +1284,16 @@ const AdminPanel: React.FC<{
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formDataToSave),
+        body: JSON.stringify({
+          moduleId: selectedModule?.id,
+          formName: formDataToSave.title,
+          questions: formDataToSave.questions
+        }),
       });
 
       if (response.ok) {
         if (selectedModule) {
-          fetchForms(parseInt(selectedModule.id));
+          fetchForms(selectedModule.id);
         }
         setShowFormForm(false);
         alert('Form created successfully!');
@@ -1306,12 +1312,15 @@ const AdminPanel: React.FC<{
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formDataToSave),
+        body: JSON.stringify({
+          formName: formDataToSave.title,
+          questions: formDataToSave.questions
+        }),
       });
 
       if (response.ok) {
         if (selectedModule) {
-          fetchForms(parseInt(selectedModule.id));
+          fetchForms(selectedModule.id);
         }
         setEditingForm(null);
         alert('Form updated successfully!');
@@ -1500,7 +1509,22 @@ const AdminPanel: React.FC<{
                 <button className={`tab-button ${editingForm ? "active" : ""}`} onClick={() => setEditingForm(true)}>Actions</button>
               </div>
 
-              {!editingForm ? (
+              <div className="content-tabs">
+                <button 
+                  className={`tab-button ${activeTab === 'articles' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('articles')}
+                >
+                  Articles
+                </button>
+                <button 
+                  className={`tab-button ${activeTab === 'actions' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('actions')}
+                >
+                  Actions
+                </button>
+              </div>
+
+              {activeTab === 'articles' ? (
                 <div className="articles-list">
                   {articles.map((article, index) => (
                     <div
@@ -1574,6 +1598,11 @@ const AdminPanel: React.FC<{
                       </div>
                     </div>
                   ))}
+                  {articles.length === 0 && (
+                    <div className="no-content-message">
+                      No articles in this module
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="forms-list">
@@ -1587,8 +1616,8 @@ const AdminPanel: React.FC<{
                       <div key={form.id} className="form-item">
                         <div className="drag-handle">⋮⋮</div>
                         <div className="form-info">
-                          <h4>{form.title}</h4>
-                          <p>{form.questions.length} questions</p>
+                          <h4>{form.formName}</h4>
+                          <p>{form.questions ? form.questions.length : 0} questions</p>
                         </div>
                         <div className="form-actions">
                           <button onClick={() => setEditingForm(form)} className="edit-btn">Edit</button>
@@ -1598,7 +1627,7 @@ const AdminPanel: React.FC<{
                     ))
                   ) : (
                     <div className="no-content-message">
-                      No actions available for this module yet.
+                      No actions in this module
                     </div>
                   )}
                 </div>
@@ -2036,7 +2065,7 @@ const FormForm: React.FC<{
   onSave: (data: { title: string; questions: FormQuestion[] }) => void;
   onCancel: () => void;
 }> = ({ form, moduleId, onSave, onCancel }) => {
-  const [title, setTitle] = useState(form?.title || '');
+  const [title, setTitle] = useState(form?.title || form?.formName || '');
   const [questions, setQuestions] = useState<FormQuestion[]>(form?.questions || [
     { id: 'q1', text: '', type: 'text', required: true }
   ]);
