@@ -1803,10 +1803,6 @@ body {
   overflow: hidden;
 }
 
-.form-item .drag-handle {
-  display: none;
-}
-
 .form-info {
   flex: 1;
   margin-right: 1rem;
