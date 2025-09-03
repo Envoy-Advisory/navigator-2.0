@@ -1505,11 +1505,6 @@ const AdminPanel: React.FC<{
           {selectedModule && (
             <>
               <div className="content-tabs">
-                <button className={`tab-button ${!editingForm ? "active" : ""}`} onClick={() => setEditingForm(null)}>Articles</button>
-                <button className={`tab-button ${editingForm ? "active" : ""}`} onClick={() => setEditingForm(true)}>Actions</button>
-              </div>
-
-              <div className="content-tabs">
                 <button 
                   className={`tab-button ${activeTab === 'articles' ? 'active' : ''}`} 
                   onClick={() => setActiveTab('articles')}
