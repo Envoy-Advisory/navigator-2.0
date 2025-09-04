@@ -402,9 +402,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
                         )}
                       </div>
 
-                      <div className="question-meta">
-                        <span className="question-type">Type: {question.type}</span>
-                      </div>
+                      
                     </div>
                   ))}
                 </div>
