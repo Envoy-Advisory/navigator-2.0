@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import './ContentViewer.css';
 
@@ -82,7 +81,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setModules(data);
@@ -106,7 +105,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const articles = await response.json();
         setModules(prev => prev.map(module => 
@@ -134,7 +133,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const forms = await response.json();
         setModules(prev => prev.map(module => 
@@ -161,7 +160,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data) {
@@ -177,7 +176,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const toggleModule = (module: CMSModule) => {
     const isExpanded = expandedModules.has(module.id);
     const newExpanded = new Set(expandedModules);
-    
+
     if (isExpanded) {
       newExpanded.delete(module.id);
     } else {
@@ -189,7 +188,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
         fetchForms(module.id);
       }
     }
-    
+
     setExpandedModules(newExpanded);
     setSelectedModule(module);
   };
@@ -265,7 +264,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
       if (beforeMatch.includes('data:')) return match;
       return 'src="/api/uploads/';
     });
-    
+
     return formatted;
   };
 
@@ -375,6 +374,42 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
+  const handleAnswerChange = (questionId: string, answer: string | string[]) => {
+    setFormAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const handleSaveForm = async () => {
+    if (!selectedForm) return;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${selectedForm.id}/response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          answers: formAnswers
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormResponse(data);
+        alert('Form saved successfully!');
+      } else {
+        alert('Failed to save form');
+      }
+    } catch (error) {
+      console.error('Error saving form:', error);
+      alert('Error saving form');
+    }
+  };
+
   if (loading) {
     return (
       <div className="content-viewer">
@@ -393,7 +428,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           <h2>Learning Modules</h2>
           <p>Browse articles and forms by module</p>
         </div>
-        
+
         <ul className="modules-nav-list">
           {modules.map(module => (
             <li key={module.id} className="module-nav-item">
@@ -407,7 +442,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                 </span>
                 <span className="module-number">{module.moduleNumber}</span>
               </button>
-              
+
               {expandedModules.has(module.id) && (
                 <div className="content-submenu">
                   {contentLoading && selectedModule?.id === module.id ? (
@@ -431,7 +466,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                           ))}
                         </>
                       )}
-                      
+
                       {module.forms && module.forms.length > 0 && (
                         <>
                           <div className="content-type-header">Forms</div>
@@ -446,7 +481,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                           ))}
                         </>
                       )}
-                      
+
                       {(!module.articles || module.articles.length === 0) && 
                        (!module.forms || module.forms.length === 0) && (
                         <div className="no-content-message">
@@ -494,18 +529,103 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
             </header>
             <div className="content-body">
               <div className="form-container">
-                {selectedForm.questions.map(question => renderFormQuestion(question))}
-                
+                <div className="form-header">
+                  <h2>{selectedForm.formName}</h2>
+                  <p className="form-description">This action contains questions to help guide your planning and implementation.</p>
+                </div>
+
+                <div className="form-questions">
+                  {selectedForm.questions.map((question, index) => (
+                    <div key={question.id} className="form-question">
+                      <div className="question-header">
+                        <h3>Question {index + 1}</h3>
+                        {question.required && <span className="required-badge">Required</span>}
+                      </div>
+                      <p className="question-text">{question.text}</p>
+
+                      <div className="question-input">
+                        {question.type === 'text' && (
+                          <input
+                            type="text"
+                            value={(formAnswers[question.id] as string) || ''}
+                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            className="form-input"
+                            placeholder="Enter your answer..."
+                            required={question.required}
+                          />
+                        )}
+
+                        {question.type === 'textarea' && (
+                          <textarea
+                            value={(formAnswers[question.id] as string) || ''}
+                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            className="form-textarea"
+                            placeholder="Enter your answer..."
+                            rows={4}
+                            required={question.required}
+                          />
+                        )}
+
+                        {question.type === 'select' && question.options && (
+                          <select
+                            value={(formAnswers[question.id] as string) || ''}
+                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            className="form-select"
+                            required={question.required}
+                          >
+                            <option value="">Select an option...</option>
+                            {question.options.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        )}
+
+                        {question.type === 'checkbox' && question.options && (
+                          <div className="checkbox-group">
+                            {question.options.map(option => (
+                              <label key={option} className="checkbox-option">
+                                <input
+                                  type="checkbox"
+                                  checked={(formAnswers[question.id] as string[])?.includes(option) || false}
+                                  onChange={(e) => {
+                                    const currentAnswers = formAnswers[question.id] as string[] || [];
+                                    const newAnswers = e.target.checked
+                                      ? [...currentAnswers, option]
+                                      : currentAnswers.filter(ans => ans !== option);
+                                    handleAnswerChange(question.id, newAnswers);
+                                  }}
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="question-meta">
+                        <span className="question-type">Type: {question.type}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="form-actions">
-                  <button onClick={saveFormResponse} className="save-form-btn">
-                    Save Response
+                  <button 
+                    onClick={handleSaveForm} 
+                    className="complete-action-btn"
+                    disabled={contentLoading}
+                  >
+                    {contentLoading ? 'Saving...' : 'Complete This Action'}
                   </button>
-                  {formResponse && (
+                </div>
+
+                {formResponse && (
+                  <div className="form-response-info">
                     <p className="form-status">
                       Last saved: {new Date(formResponse.updated_at).toLocaleDateString()}
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
