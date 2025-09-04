@@ -227,7 +227,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
       <nav className="article-nav">
         <div className="article-nav-header">
           <h2>Learning Modules</h2>
-          <p>Browse articles and actions by module</p>
+          <p>Browse articles by module</p>
         </div>
 
         <ul className="modules-nav-list">
@@ -246,8 +246,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
 
               {expandedModules.has(module.id) && (
                 <div className="content-submenu">
-                  {/* Articles Section */}
-                  <div className="content-type-header">Articles</div>
                   {articlesLoading && selectedModule?.id === module.id ? (
                     <div className="loading-content">
                       <div className="loading-spinner"></div>
@@ -266,29 +264,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
                   ) : (
                     <div className="no-content-message">
                       No articles available
-                    </div>
-                  )}
-
-                  {/* Actions Section */}
-                  <div className="content-type-header">Actions</div>
-                  {formsLoading && selectedModule?.id === module.id ? (
-                    <div className="loading-content">
-                      <div className="loading-spinner"></div>
-                      Loading actions...
-                    </div>
-                  ) : module.forms && module.forms.length > 0 ? (
-                    module.forms.map(form => (
-                      <button
-                        key={`form-${form.id}`}
-                        className={`content-nav-item ${selectedForm?.id === form.id ? 'active' : ''}`}
-                        onClick={() => selectForm(form)}
-                      >
-                        📋 {form.formName}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="no-content-message">
-                      No actions available
                     </div>
                   )}
                 </div>
