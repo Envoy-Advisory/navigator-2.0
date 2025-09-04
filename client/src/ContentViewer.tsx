@@ -521,7 +521,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                           />
                         )}
 
-                        {(question.type === 'textarea' || question.type === 'text') && question.type !== 'text' && (
+                        {question.type === 'textarea' && (
                           <textarea
                             value={(formAnswers[question.id] as string) || ''}
                             onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
