@@ -227,7 +227,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
       <nav className="article-nav">
         <div className="article-nav-header">
           <h2>Learning Modules</h2>
-          <p>Browse articles and actions by module</p>
+          <p>Browse articles by module</p>
         </div>
 
         <ul className="modules-nav-list">
