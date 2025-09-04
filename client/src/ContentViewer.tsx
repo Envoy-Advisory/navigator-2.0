@@ -374,41 +374,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
-  const handleAnswerChange = (questionId: string, answer: string | string[]) => {
-    setFormAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
-  };
-
-  const handleSaveForm = async () => {
-    if (!selectedForm) return;
-
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/forms/${selectedForm.id}/response`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          answers: formAnswers
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFormResponse(data);
-        alert('Form saved successfully!');
-      } else {
-        alert('Failed to save form');
-      }
-    } catch (error) {
-      console.error('Error saving form:', error);
-      alert('Error saving form');
-    }
-  };
+  
 
   if (loading) {
     return (
@@ -541,24 +507,24 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                         <h3>Question {index + 1}</h3>
                         {question.required && <span className="required-badge">Required</span>}
                       </div>
-                      <p className="question-text">{question.text}</p>
+                      <p className="question-text">{question.question || question.text}</p>
 
                       <div className="question-input">
                         {question.type === 'text' && (
                           <input
                             type="text"
                             value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
                             className="form-input"
                             placeholder="Enter your answer..."
                             required={question.required}
                           />
                         )}
 
-                        {question.type === 'textarea' && (
+                        {(question.type === 'textarea' || question.type === 'text') && question.type !== 'text' && (
                           <textarea
                             value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
                             className="form-textarea"
                             placeholder="Enter your answer..."
                             rows={4}
@@ -566,10 +532,10 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                           />
                         )}
 
-                        {question.type === 'select' && question.options && (
+                        {(question.type === 'dropdown' || question.type === 'select') && question.options && (
                           <select
                             value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
                             className="form-select"
                             required={question.required}
                           >
@@ -592,12 +558,37 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                                     const newAnswers = e.target.checked
                                       ? [...currentAnswers, option]
                                       : currentAnswers.filter(ans => ans !== option);
-                                    handleAnswerChange(question.id, newAnswers);
+                                    handleFormAnswerChange(question.id, newAnswers);
                                   }}
                                 />
                                 <span>{option}</span>
                               </label>
                             ))}
+                          </div>
+                        )}
+
+                        {question.type === 'yesno' && (
+                          <div className="radio-group">
+                            <label className="radio-option">
+                              <input
+                                type="radio"
+                                name={question.id}
+                                value="yes"
+                                checked={formAnswers[question.id] === 'yes'}
+                                onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                              />
+                              Yes
+                            </label>
+                            <label className="radio-option">
+                              <input
+                                type="radio"
+                                name={question.id}
+                                value="no"
+                                checked={formAnswers[question.id] === 'no'}
+                                onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                              />
+                              No
+                            </label>
                           </div>
                         )}
                       </div>
@@ -611,7 +602,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
 
                 <div className="form-actions">
                   <button 
-                    onClick={handleSaveForm} 
+                    onClick={saveFormResponse} 
                     className="complete-action-btn"
                     disabled={contentLoading}
                   >
