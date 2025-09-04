@@ -418,6 +418,9 @@ const Header: React.FC<{
       <nav className="header-nav">
         <Link to="/" className="nav-link">Home</Link>
         {!currentUser && <Link to="/program" className="nav-link">Program</Link>}
+        {currentUser && <Link to="/articles" className="nav-link">Articles</Link>}
+        {/* Link to Forms */}
+        {currentUser && <Link to="/forms/planning" className="nav-link">Actions</Link>}
         {currentUser && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
         <Link to="/faq" className="nav-link">FAQ</Link>
       </nav>
