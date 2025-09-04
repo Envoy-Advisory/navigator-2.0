@@ -341,10 +341,70 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({ currentUser }) => {
                 <div className="form-questions-preview">
                   {selectedForm.questions?.map((question, index) => (
                     <div key={question.id || index} className="question-preview">
-                      <h4>Question {index + 1}</h4>
-                      <p>{question.text}</p>
-                      <span className="question-type">Type: {question.type}</span>
-                      {question.required && <span className="required-indicator">Required</span>}
+                      <div className="question-header">
+                        <h4>Question {index + 1}</h4>
+                        {question.required && <span className="required-indicator">Required</span>}
+                      </div>
+                      <p className="question-text">{question.text}</p>
+                      
+                      <div className="question-input">
+                        {question.type === 'text' && (
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Enter your answer..."
+                          />
+                        )}
+
+                        {question.type === 'textarea' && (
+                          <textarea
+                            className="form-textarea"
+                            placeholder="Enter your answer..."
+                            rows={4}
+                          />
+                        )}
+
+                        {(question.type === 'select' || question.type === 'dropdown') && question.options && (
+                          <select className="form-select">
+                            <option value="">Select an option...</option>
+                            {question.options.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        )}
+
+                        {question.type === 'checkbox' && question.options && (
+                          <div className="checkbox-group">
+                            {question.options.map(option => (
+                              <label key={option} className="checkbox-option">
+                                <input
+                                  type="checkbox"
+                                />
+                                <span>{option}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+
+                        {question.type === 'radio' && question.options && (
+                          <div className="radio-group">
+                            {question.options.map(option => (
+                              <label key={option} className="radio-option">
+                                <input
+                                  type="radio"
+                                  name={`question-${question.id || index}`}
+                                  value={option}
+                                />
+                                {option}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="question-meta">
+                        <span className="question-type">Type: {question.type}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
