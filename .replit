@@ -26,8 +26,12 @@ externalPort = 80
 localPort = 5174
 externalPort = 3000
 
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
 [workflows]
-runButton = "Restart Full Stack"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Start Development Server"
@@ -63,6 +67,27 @@ args = "cd server && npm run dev"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd client && npm run dev"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Server"
+
+[[workflows.workflow]]
+name = "Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && npm run dev"
+waitForPort = 3000
 
 [agent]
 expertMode = true
