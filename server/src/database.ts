@@ -22,7 +22,7 @@ export async function initializeDatabase(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('Database connected with Prisma');
-    
+
     // Test the connection
     await prisma.$queryRaw`SELECT 1`;
     console.log('Database connection test successful');
@@ -109,9 +109,8 @@ export class UserService {
 export class OrganizationService {
   static async findByName(name: string): Promise<Organization | null> {
     try {
-      return await prisma.organization.findUnique({
-        where: { name },
-        include: { users: true }
+      return await prisma.organization.findFirst({
+        where: { name }
       });
     } catch (error) {
       console.error('Error finding organization by name:', error);
