@@ -16,11 +16,19 @@ const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
 
 // Middleware
 app.use(cors({
-  origin: getEnvVar('CLIENT_URL', 'http://localhost:5173'),
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://*.replit.dev', 'https://*.replit.co'],
   credentials: true
 }));
 
-// Reasonable body size limits for compressed images
+// Add CSP headers
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https: wss: ws:;"
+  );
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -57,7 +65,7 @@ app.post('/api/register', async (req: Request, res: Response) => {
     if (organization) {
       console.log('Looking for organization:', organization);
       let existingOrg = await OrganizationService.findByName(organization);
-      
+
       if (existingOrg) {
         console.log('Found existing organization with ID:', existingOrg.id);
         organizationId = existingOrg.id;
