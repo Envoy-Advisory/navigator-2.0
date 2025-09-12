@@ -1,0 +1,33 @@
+home/runner/workspace/server/node_modules/ts-node/src/index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/database.ts:113:9 - error TS2322: Type '{ name: string; }' is not assignable to type 'OrganizationWhereUniqueInput'.
+  Type '{ name: string; }' is not assignable to type '{ id: number; } & { id?: number | undefined; AND?: OrganizationWhereInput | OrganizationWhereInput[] | undefined; OR?: OrganizationWhereInput[] | undefined; ... 5 more ...; users?: UserListRelationFilter | undefined; }'.
+    Property 'id' is missing in type '{ name: string; }' but required in type '{ id: number; }'.
+
+113         where: { name },
+            ~~~~~
+
+  node_modules/.prisma/client/index.d.ts:9683:5
+    9683     id?: number
+             ~~
+    'id' is declared here.
+  node_modules/.prisma/client/index.d.ts:2243:5
+    2243     where: OrganizationWhereUniqueInput
+             ~~~~~
+    The expected type comes from property 'where' which is declared here on type '{ select?: OrganizationSelect<DefaultArgs> | null | undefined; omit?: OrganizationOmit<DefaultArgs> | null | undefined; include?: OrganizationInclude<...> | ... 1 more ... | undefined; where: OrganizationWhereUniqueInput; }'
+
+    at createTSError (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1617:30)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Object.require.extensions.<computed> [as .ts] (/home/runner/workspace/server/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19) {
+  diagnosticCodes: [ 2322 ]
+}
+[nodemon] app crashed -
