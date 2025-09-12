@@ -169,6 +169,32 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
   });
 };
 
+// Organization validation middleware
+const validateSameOrganization = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId: targetUserId } = req.params;
+    const currentUser = await UserService.findById(req.user!.userId);
+    
+    if (!currentUser || !currentUser.organization_id) {
+      res.status(403).json({ error: 'User must belong to an organization' });
+      return;
+    }
+
+    if (targetUserId) {
+      const targetUser = await UserService.findById(parseInt(targetUserId));
+      if (!targetUser || targetUser.organization_id !== currentUser.organization_id) {
+        res.status(403).json({ error: 'Access denied: users must be in the same organization' });
+        return;
+      }
+    }
+
+    next();
+  } catch (error) {
+    console.error('Organization validation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Protected route to verify token
 app.get('/api/verify', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -375,7 +401,7 @@ app.put('/api/forms/reorder', authenticateToken, async (req: Request, res: Respo
   }
 });
 
-// Form response routes
+// Form response routes (individual user)
 app.get('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { formId } = req.params;
@@ -424,6 +450,130 @@ app.post('/api/forms/:formId/response', authenticateToken, async (req: Authentic
     res.json(response);
   } catch (error) {
     console.error('Error saving form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Organization-level form response routes
+app.get('/api/forms/:formId/responses/organization', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { formId } = req.params;
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
+
+    // Get all users in the same organization
+    const organizationUsers = await prisma.user.findMany({
+      where: {
+        organization_id: currentUser.organization_id
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    });
+
+    const userIds = organizationUsers.map(user => user.id);
+
+    // Get all form responses from organization members
+    const responses = await prisma.formResponse.findMany({
+      where: {
+        formId: parseInt(formId),
+        userId: {
+          in: userIds
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        updated_at: 'desc'
+      }
+    });
+
+    res.json({
+      organizationUsers,
+      responses
+    });
+  } catch (error) {
+    console.error('Error fetching organization form responses:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/forms/:formId/responses/:userId', authenticateToken, validateSameOrganization, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { formId, userId } = req.params;
+    const { answers } = req.body;
+
+    const response = await prisma.formResponse.upsert({
+      where: {
+        formId_userId: {
+          formId: parseInt(formId),
+          userId: parseInt(userId)
+        }
+      },
+      update: {
+        answers,
+        updated_at: new Date()
+      },
+      create: {
+        formId: parseInt(formId),
+        userId: parseInt(userId),
+        answers
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating organization member form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/forms/:formId/responses/:userId', authenticateToken, validateSameOrganization, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { formId, userId } = req.params;
+
+    const response = await prisma.formResponse.findUnique({
+      where: {
+        formId_userId: {
+          formId: parseInt(formId),
+          userId: parseInt(userId)
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching organization member form response:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

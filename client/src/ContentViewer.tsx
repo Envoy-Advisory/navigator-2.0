@@ -53,6 +53,11 @@ interface FormResponse {
   updated_at: string;
 }
 
+interface OrganizationFormResponses {
+  organizationUsers: User[];
+  responses: FormResponse[];
+}
+
 interface ContentViewerProps {
   currentUser: User;
 }
@@ -67,6 +72,9 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
+  const [organizationResponses, setOrganizationResponses] = useState<OrganizationFormResponses | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [showOrganizationView, setShowOrganizationView] = useState(false);
 
   useEffect(() => {
     fetchModules();
@@ -166,10 +174,91 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
         if (data) {
           setFormResponse(data);
           setFormAnswers(data.answers || {});
+        } else {
+          setFormResponse(null);
+          setFormAnswers({});
         }
       }
     } catch (error) {
       console.error('Error fetching form response:', error);
+    }
+  };
+
+  const fetchOrganizationFormResponses = async (formId: number) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${formId}/organization-responses`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data: OrganizationFormResponses = await response.json();
+        setOrganizationResponses(data);
+      } else {
+        console.error('Failed to fetch organization form responses');
+        setOrganizationResponses(null);
+      }
+    } catch (error) {
+      console.error('Error fetching organization form responses:', error);
+      setOrganizationResponses(null);
+    }
+  };
+
+  const fetchUserFormResponse = async (formId: number, userId: number) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${formId}/user/${userId}/response`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data: FormResponse = await response.json();
+        setFormResponse(data);
+        setFormAnswers(data.answers || {});
+      } else {
+        console.error(`Failed to fetch form response for user ${userId}`);
+        setFormResponse(null);
+        setFormAnswers({});
+      }
+    } catch (error) {
+      console.error(`Error fetching form response for user ${userId}:`, error);
+      setFormResponse(null);
+      setFormAnswers({});
+    }
+  };
+
+  const saveUserFormResponse = async (formId: number, userId: number, answers: { [questionId: string]: any }) => {
+    try {
+      setContentLoading(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${formId}/user/${userId}/response`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ answers })
+      });
+
+      if (response.ok) {
+        const data: FormResponse = await response.json();
+        setFormResponse(data);
+        alert('User form response saved successfully!');
+        await fetchOrganizationFormResponses(formId); // Refresh organization responses
+      } else {
+        alert('Failed to save user form response');
+      }
+    } catch (error) {
+      console.error('Error saving user form response:', error);
+      alert('Error saving user form response');
+    } finally {
+      setContentLoading(false);
     }
   };
 
@@ -201,9 +290,12 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const selectForm = (form: CMSForm) => {
     setSelectedForm(form);
     setSelectedArticle(null);
-    setFormResponse(null);
-    setFormAnswers({});
+    setShowOrganizationView(false);
+    setSelectedUserId(null);
     fetchFormResponse(form.id);
+    if (currentUser.organizationId) {
+      fetchOrganizationFormResponses(form.id);
+    }
   };
 
   const handleFormAnswerChange = (questionId: string, value: any) => {
@@ -216,27 +308,33 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const saveFormResponse = async () => {
     if (!selectedForm) return;
 
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/forms/${selectedForm.id}/response`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ answers: formAnswers })
-      });
+    if (showOrganizationView && selectedUserId) {
+      await saveUserFormResponse(selectedForm.id, selectedUserId, formAnswers);
+    } else {
+      try {
+        setContentLoading(true);
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`/api/forms/${selectedForm.id}/response`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ answers: formAnswers })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        setFormResponse(data);
-        alert('Form saved successfully!');
-      } else {
-        alert('Failed to save form');
+        if (response.ok) {
+          const data = await response.json();
+          setFormResponse(data);
+          if (currentUser.organizationId) {
+            await fetchOrganizationFormResponses(selectedForm.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error saving form response:', error);
+      } finally {
+        setContentLoading(false);
       }
-    } catch (error) {
-      console.error('Error saving form:', error);
-      alert('Error saving form');
     }
   };
 
@@ -374,7 +472,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
-  
+
 
   if (loading) {
     return (
@@ -485,139 +583,186 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
           </>
         ) : selectedForm ? (
           <>
-            <header className="content-header">
-              <h1>{selectedForm.formName}</h1>
-              <p className="content-breadcrumb">
-                {selectedModule?.moduleName}
-                <span className="breadcrumb-separator">›</span>
-                {selectedForm.formName}
-              </p>
-            </header>
-            <div className="content-body">
-              <div className="form-container">
-                <div className="form-header">
-                  <h2>{selectedForm.formName}</h2>
-                  <p className="form-description">This action contains questions to help guide your planning and implementation.</p>
-                </div>
-
-                <div className="form-questions">
-                  {selectedForm.questions.map((question, index) => (
-                    <div key={question.id} className="form-question">
-                      <div className="question-header">
-                        <h3>Question {index + 1}</h3>
-                        {question.required && <span className="required-badge">Required</span>}
-                      </div>
-                      <p className="question-text">{question.question || question.text}</p>
-
-                      <div className="question-input">
-                        {question.type === 'text' && (
-                          <input
-                            type="text"
-                            value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
-                            className="form-input"
-                            placeholder="Enter your answer..."
-                            required={question.required}
-                          />
-                        )}
-
-                        {question.type === 'textarea' && (
-                          <textarea
-                            value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
-                            className="form-textarea"
-                            placeholder="Enter your answer..."
-                            rows={4}
-                            required={question.required}
-                          />
-                        )}
-
-                        {(question.type === 'dropdown' || question.type === 'select') && question.options && (
-                          <select
-                            value={(formAnswers[question.id] as string) || ''}
-                            onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
-                            className="form-select"
-                            required={question.required}
-                          >
-                            <option value="">Select an option...</option>
-                            {question.options.map(option => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
-                          </select>
-                        )}
-
-                        {question.type === 'checkbox' && question.options && (
-                          <div className="checkbox-group">
-                            {question.options.map(option => (
-                              <label key={option} className="checkbox-option">
-                                <input
-                                  type="checkbox"
-                                  checked={(formAnswers[question.id] as string[])?.includes(option) || false}
-                                  onChange={(e) => {
-                                    const currentAnswers = formAnswers[question.id] as string[] || [];
-                                    const newAnswers = e.target.checked
-                                      ? [...currentAnswers, option]
-                                      : currentAnswers.filter(ans => ans !== option);
-                                    handleFormAnswerChange(question.id, newAnswers);
-                                  }}
-                                />
-                                <span>{option}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-
-                        {question.type === 'yesno' && (
-                          <div className="radio-group">
-                            <label className="radio-option">
-                              <input
-                                type="radio"
-                                name={question.id}
-                                value="yes"
-                                checked={formAnswers[question.id] === 'yes'}
-                                onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
-                              />
-                              Yes
-                            </label>
-                            <label className="radio-option">
-                              <input
-                                type="radio"
-                                name={question.id}
-                                value="no"
-                                checked={formAnswers[question.id] === 'no'}
-                                onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
-                              />
-                              No
-                            </label>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="question-meta">
-                        <span className="question-type">Type: {question.type}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="form-actions">
-                  <button 
-                    onClick={saveFormResponse} 
-                    className="complete-action-btn"
-                    disabled={contentLoading}
-                  >
-                    {contentLoading ? 'Saving...' : 'Complete This Action'}
-                  </button>
-                </div>
-
-                {formResponse && (
-                  <div className="form-response-info">
-                    <p className="form-status">
-                      Last saved: {new Date(formResponse.updated_at).toLocaleDateString()}
-                    </p>
+            <div className="form-content">
+              <div className="form-header">
+                <h2>{selectedForm.formName}</h2>
+                {currentUser.organizationId && (
+                  <div className="organization-controls">
+                    <button 
+                      onClick={() => {
+                        setShowOrganizationView(!showOrganizationView);
+                        setSelectedUserId(null);
+                        if (!showOrganizationView) {
+                          setFormAnswers({});
+                          setFormResponse(null);
+                        } else {
+                          fetchFormResponse(selectedForm.id);
+                        }
+                      }}
+                      className={showOrganizationView ? 'org-btn active' : 'org-btn'}
+                    >
+                      {showOrganizationView ? 'My Response' : 'Organization View'}
+                    </button>
                   </div>
                 )}
               </div>
+
+              {showOrganizationView && organizationResponses && (
+                <div className="organization-section">
+                  <h3>Organization Members</h3>
+                  <div className="user-selector">
+                    {organizationResponses.organizationUsers.map(user => {
+                      const userResponse = organizationResponses.responses.find(r => r.userId === user.id);
+                      const isSelected = selectedUserId === user.id;
+                      return (
+                        <div 
+                          key={user.id} 
+                          className={`user-card ${isSelected ? 'selected' : ''} ${userResponse ? 'has-response' : ''}`}
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            fetchUserFormResponse(selectedForm.id, user.id);
+                          }}
+                        >
+                          <div className="user-info">
+                            <strong>{user.name}</strong>
+                            <span>{user.email}</span>
+                          </div>
+                          <div className="response-status">
+                            {userResponse ? (
+                              <span className="completed">✓ Completed</span>
+                            ) : (
+                              <span className="pending">○ Pending</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {selectedUserId && (
+                    <div className="editing-user">
+                      <h4>Editing response for: {organizationResponses.organizationUsers.find(u => u.id === selectedUserId)?.name}</h4>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="form-questions">
+                {selectedForm.questions.map((question, index) => (
+                  <div key={question.id || index} className="form-question">
+                    <label className="question-label">
+                      {question.question}
+                      {question.required && <span className="required">*</span>}
+                    </label>
+
+                    <div className="question-input">
+                      {question.type === 'text' && (
+                        <input
+                          type="text"
+                          value={(formAnswers[question.id] as string) || ''}
+                          onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                          className="form-input"
+                          placeholder="Enter your answer..."
+                          required={question.required}
+                        />
+                      )}
+
+                      {question.type === 'textarea' && (
+                        <textarea
+                          value={(formAnswers[question.id] as string) || ''}
+                          onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                          className="form-textarea"
+                          placeholder="Enter your answer..."
+                          rows={4}
+                          required={question.required}
+                        />
+                      )}
+
+                      {(question.type === 'dropdown' || question.type === 'select') && question.options && (
+                        <select
+                          value={(formAnswers[question.id] as string) || ''}
+                          onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                          className="form-select"
+                          required={question.required}
+                        >
+                          <option value="">Select an option...</option>
+                          {question.options.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      {question.type === 'checkbox' && question.options && (
+                        <div className="checkbox-group">
+                          {question.options.map(option => (
+                            <label key={option} className="checkbox-option">
+                              <input
+                                type="checkbox"
+                                checked={(formAnswers[question.id] as string[])?.includes(option) || false}
+                                onChange={(e) => {
+                                  const currentAnswers = formAnswers[question.id] as string[] || [];
+                                  const newAnswers = e.target.checked
+                                    ? [...currentAnswers, option]
+                                    : currentAnswers.filter(ans => ans !== option);
+                                  handleFormAnswerChange(question.id, newAnswers);
+                                }}
+                              />
+                              <span>{option}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {question.type === 'yesno' && (
+                        <div className="radio-group">
+                          <label className="radio-option">
+                            <input
+                              type="radio"
+                              name={question.id}
+                              value="yes"
+                              checked={formAnswers[question.id] === 'yes'}
+                              onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                            />
+                            Yes
+                          </label>
+                          <label className="radio-option">
+                            <input
+                              type="radio"
+                              name={question.id}
+                              value="no"
+                              checked={formAnswers[question.id] === 'no'}
+                              onChange={(e) => handleFormAnswerChange(question.id, e.target.value)}
+                            />
+                            No
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="question-meta">
+                      <span className="question-type">Type: {question.type}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="form-actions">
+                <button 
+                  onClick={saveFormResponse} 
+                  className="complete-action-btn"
+                  disabled={contentLoading}
+                >
+                  {contentLoading ? 'Saving...' : 'Complete This Action'}
+                </button>
+              </div>
+
+              {formResponse && !showOrganizationView && (
+                <div className="form-response-info">
+                  <p className="form-status">
+                    Last saved: {new Date(formResponse.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
             </div>
           </>
         ) : (
