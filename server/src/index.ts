@@ -52,13 +52,21 @@ app.post('/api/register', async (req: Request, res: Response) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create organization if provided
+    // Find existing organization or create new one if provided
     let organizationId: number | undefined = undefined;
     if (organization) {
-      console.log('Creating organization:', organization);
-      const orgResult = await OrganizationService.create(organization);
-      organizationId = orgResult.id;
-      console.log('Organization created with ID:', organizationId);
+      console.log('Looking for organization:', organization);
+      let existingOrg = await OrganizationService.findByName(organization);
+      
+      if (existingOrg) {
+        console.log('Found existing organization with ID:', existingOrg.id);
+        organizationId = existingOrg.id;
+      } else {
+        console.log('Creating new organization:', organization);
+        const orgResult = await OrganizationService.create(organization);
+        organizationId = orgResult.id;
+        console.log('Organization created with ID:', organizationId);
+      }
     }
 
     // Create user

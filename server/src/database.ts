@@ -107,6 +107,18 @@ export class UserService {
 
 // Organization operations
 export class OrganizationService {
+  static async findByName(name: string): Promise<Organization | null> {
+    try {
+      return await prisma.organization.findUnique({
+        where: { name },
+        include: { users: true }
+      });
+    } catch (error) {
+      console.error('Error finding organization by name:', error);
+      throw error;
+    }
+  }
+
   static async create(name: string): Promise<{ id: number }> {
     try {
       const organization = await prisma.organization.create({

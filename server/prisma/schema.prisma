@@ -9,7 +9,7 @@ datasource db {
 
 model Organization {
   id                Int      @id @default(autoincrement())
-  name              String   @db.VarChar(255)
+  name              String   @unique @db.VarChar(255)
   subscription_type String   @default("basic") @db.VarChar(50)
   settings          Json     @default("{}")
   created_at        DateTime @default(now())
