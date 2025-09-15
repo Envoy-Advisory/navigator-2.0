@@ -405,13 +405,26 @@ app.put('/api/forms/reorder', authenticateToken, async (req: Request, res: Respo
 app.get('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { formId } = req.params;
-    const user = req.user!;
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
 
     const response = await prisma.formResponse.findUnique({
       where: {
-        formId_userId: {
+        formId_organizationId: {
           formId: parseInt(formId),
-          userId: user.userId
+          organizationId: currentUser.organization_id
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
         }
       }
     });
@@ -427,23 +440,38 @@ app.post('/api/forms/:formId/response', authenticateToken, async (req: Authentic
   try {
     const { formId } = req.params;
     const { answers } = req.body;
-    const user = req.user!;
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
 
     const response = await prisma.formResponse.upsert({
       where: {
-        formId_userId: {
+        formId_organizationId: {
           formId: parseInt(formId),
-          userId: user.userId
+          organizationId: currentUser.organization_id
         }
       },
       update: {
         answers,
+        userId: currentUser.id, // Track who last updated
         updated_at: new Date()
       },
       create: {
         formId: parseInt(formId),
-        userId: user.userId,
+        organizationId: currentUser.organization_id,
+        userId: currentUser.id,
         answers
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -454,10 +482,9 @@ app.post('/api/forms/:formId/response', authenticateToken, async (req: Authentic
   }
 });
 
-// Organization-level form response routes
-app.get('/api/forms/:formId/responses/organization', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+// Get organization users for a form (to show who can collaborate)
+app.get('/api/forms/:formId/organization/users', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { formId } = req.params;
     const currentUser = await UserService.findById(req.user!.userId);
 
     if (!currentUser || !currentUser.organization_id) {
@@ -476,104 +503,9 @@ app.get('/api/forms/:formId/responses/organization', authenticateToken, async (r
       }
     });
 
-    const userIds = organizationUsers.map(user => user.id);
-
-    // Get all form responses from organization members
-    const responses = await prisma.formResponse.findMany({
-      where: {
-        formId: parseInt(formId),
-        userId: {
-          in: userIds
-        }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      },
-      orderBy: {
-        updated_at: 'desc'
-      }
-    });
-
-    res.json({
-      organizationUsers,
-      responses
-    });
+    res.json(organizationUsers);
   } catch (error) {
-    console.error('Error fetching organization form responses:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.put('/api/forms/:formId/responses/:userId', authenticateToken, validateSameOrganization, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { formId, userId } = req.params;
-    const { answers } = req.body;
-
-    const response = await prisma.formResponse.upsert({
-      where: {
-        formId_userId: {
-          formId: parseInt(formId),
-          userId: parseInt(userId)
-        }
-      },
-      update: {
-        answers,
-        updated_at: new Date()
-      },
-      create: {
-        formId: parseInt(formId),
-        userId: parseInt(userId),
-        answers
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
-
-    res.json(response);
-  } catch (error) {
-    console.error('Error updating organization member form response:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/api/forms/:formId/responses/:userId', authenticateToken, validateSameOrganization, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { formId, userId } = req.params;
-
-    const response = await prisma.formResponse.findUnique({
-      where: {
-        formId_userId: {
-          formId: parseInt(formId),
-          userId: parseInt(userId)
-        }
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
-
-    res.json(response);
-  } catch (error) {
-    console.error('Error fetching organization member form response:', error);
+    console.error('Error fetching organization users:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

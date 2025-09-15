@@ -72,9 +72,8 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
-  const [organizationResponses, setOrganizationResponses] = useState<OrganizationFormResponses | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  const [showOrganizationView, setShowOrganizationView] = useState(false);
+  const [organizationUsers, setOrganizationUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Keep selectedUserId for organization view
 
   useEffect(() => {
     fetchModules();
@@ -170,24 +169,25 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data) {
-          setFormResponse(data);
-          setFormAnswers(data.answers || {});
-        } else {
-          setFormResponse(null);
-          setFormAnswers({});
-        }
+        const data: FormResponse = await response.json();
+        setFormResponse(data);
+        setFormAnswers(data?.answers || {});
+      } else {
+        console.error('Failed to fetch form response');
+        setFormResponse(null);
+        setFormAnswers({});
       }
     } catch (error) {
       console.error('Error fetching form response:', error);
+      setFormResponse(null);
+      setFormAnswers({});
     }
   };
 
-  const fetchOrganizationFormResponses = async (formId: number) => {
+  const fetchOrganizationUsers = async (formId: number) => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`/api/forms/${formId}/organization-responses`, {
+      const response = await fetch(`/api/forms/${formId}/organization/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -195,15 +195,15 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
       });
 
       if (response.ok) {
-        const data: OrganizationFormResponses = await response.json();
-        setOrganizationResponses(data);
+        const data: User[] = await response.json();
+        setOrganizationUsers(data);
       } else {
-        console.error('Failed to fetch organization form responses');
-        setOrganizationResponses(null);
+        console.error('Failed to fetch organization users');
+        setOrganizationUsers([]);
       }
     } catch (error) {
-      console.error('Error fetching organization form responses:', error);
-      setOrganizationResponses(null);
+      console.error('Error fetching organization users:', error);
+      setOrganizationUsers([]);
     }
   };
 
@@ -250,7 +250,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
         const data: FormResponse = await response.json();
         setFormResponse(data);
         alert('User form response saved successfully!');
-        await fetchOrganizationFormResponses(formId); // Refresh organization responses
+        await fetchOrganizationUsers(formId); // Refresh organization users
       } else {
         alert('Failed to save user form response');
       }
@@ -290,11 +290,12 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const selectForm = (form: CMSForm) => {
     setSelectedForm(form);
     setSelectedArticle(null);
-    setShowOrganizationView(false);
-    setSelectedUserId(null);
+    setFormResponse(null); // Clear previous response
+    setFormAnswers({}); // Clear previous answers
+    setSelectedUserId(null); // Clear selected user
     fetchFormResponse(form.id);
     if (currentUser.organizationId) {
-      fetchOrganizationFormResponses(form.id);
+      fetchOrganizationUsers(form.id); // Fetch organization users
     }
   };
 
@@ -308,9 +309,9 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const saveFormResponse = async () => {
     if (!selectedForm) return;
 
-    if (showOrganizationView && selectedUserId) {
+    if (selectedUserId) { // If an organization member's response is being edited
       await saveUserFormResponse(selectedForm.id, selectedUserId, formAnswers);
-    } else {
+    } else { // Saving the current user's response
       try {
         setContentLoading(true);
         const token = localStorage.getItem('authToken');
@@ -324,14 +325,16 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
         });
 
         if (response.ok) {
-          const data = await response.json();
+          const data: FormResponse = await response.json();
           setFormResponse(data);
-          if (currentUser.organizationId) {
-            await fetchOrganizationFormResponses(selectedForm.id);
-          }
+          alert('Form response saved successfully!');
+          // No need to fetchOrganizationUsers here as it's for saving the current user's response
+        } else {
+          alert('Failed to save form response');
         }
       } catch (error) {
         console.error('Error saving form response:', error);
+        alert('Error saving form response');
       } finally {
         setContentLoading(false);
       }
@@ -590,29 +593,33 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                   <div className="organization-controls">
                     <button 
                       onClick={() => {
-                        setShowOrganizationView(!showOrganizationView);
-                        setSelectedUserId(null);
-                        if (!showOrganizationView) {
-                          setFormAnswers({});
-                          setFormResponse(null);
-                        } else {
+                        // Toggle between viewing own response and organization view
+                        if (selectedUserId === null) { // Currently viewing own response, switch to organization view
+                          setSelectedUserId(organizationUsers.length > 0 ? organizationUsers[0].id : null); // Select first user by default
+                          if (organizationUsers.length > 0 && organizationUsers[0].id) {
+                            fetchUserFormResponse(selectedForm.id, organizationUsers[0].id);
+                          }
+                        } else { // Currently viewing an organization member's response, switch back to own response
+                          setSelectedUserId(null);
                           fetchFormResponse(selectedForm.id);
                         }
                       }}
-                      className={showOrganizationView ? 'org-btn active' : 'org-btn'}
+                      className={selectedUserId !== null ? 'org-btn active' : 'org-btn'}
                     >
-                      {showOrganizationView ? 'My Response' : 'Organization View'}
+                      {selectedUserId !== null ? 'My Response' : 'Organization View'}
                     </button>
                   </div>
                 )}
               </div>
 
-              {showOrganizationView && organizationResponses && (
+              {/* Organization View */}
+              {selectedUserId !== null && organizationUsers && (
                 <div className="organization-section">
                   <h3>Organization Members</h3>
                   <div className="user-selector">
-                    {organizationResponses.organizationUsers.map(user => {
-                      const userResponse = organizationResponses.responses.find(r => r.userId === user.id);
+                    {organizationUsers.map(user => {
+                      // Fetch response status for each user
+                      const userResponse = formResponse && formResponse.userId === user.id ? formResponse : null;
                       const isSelected = selectedUserId === user.id;
                       return (
                         <div 
@@ -628,7 +635,9 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                             <span>{user.email}</span>
                           </div>
                           <div className="response-status">
-                            {userResponse ? (
+                            {/* This part needs to accurately reflect if a user has submitted a response */}
+                            {/* For now, assuming formResponse contains the currently viewed user's response */}
+                            {user.id === selectedUserId && formResponse ? (
                               <span className="completed">✓ Completed</span>
                             ) : (
                               <span className="pending">○ Pending</span>
@@ -639,9 +648,10 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                     })}
                   </div>
 
+                  {/* Displaying the form for the selected user */}
                   {selectedUserId && (
                     <div className="editing-user">
-                      <h4>Editing response for: {organizationResponses.organizationUsers.find(u => u.id === selectedUserId)?.name}</h4>
+                      <h4>Editing response for: {organizationUsers.find(u => u.id === selectedUserId)?.name}</h4>
                     </div>
                   )}
                 </div>
@@ -756,7 +766,8 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                 </button>
               </div>
 
-              {formResponse && !showOrganizationView && (
+              {/* Display last saved information if not in organization view */}
+              {formResponse && selectedUserId === null && (
                 <div className="form-response-info">
                   <p className="form-status">
                     Last saved: {new Date(formResponse.updated_at).toLocaleDateString()}

@@ -508,32 +508,22 @@
   margin-bottom: 2rem;
 }
 
-.organization-controls {
+.organization-info {
   display: flex;
-  gap: 1rem;
+  align-items: center;
 }
 
-.org-btn {
+.org-badge {
+  background: #e8f4f8;
+  color: #2d7d8e;
   padding: 0.5rem 1rem;
-  border: 2px solid #6c7ae0;
-  background: white;
-  color: #6c7ae0;
-  border-radius: 6px;
-  cursor: pointer;
+  border-radius: 20px;
+  font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.2s;
+  border: 1px solid #b8e6ef;
 }
 
-.org-btn:hover {
-  background: #f0f4ff;
-}
-
-.org-btn.active {
-  background: #6c7ae0;
-  color: white;
-}
-
-.organization-section {
+.form-response-status {
   background: #f8f9ff;
   padding: 1.5rem;
   border-radius: 8px;
@@ -541,59 +531,47 @@
   border: 1px solid #e2e8f0;
 }
 
-.organization-section h3 {
-  margin: 0 0 1rem 0;
-  color: #2d3748;
-}
-
-.user-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+.response-info {
+  display: flex;
+  align-items: center;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
-.user-card {
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.user-card:hover {
-  border-color: #6c7ae0;
-  box-shadow: 0 2px 8px rgba(108, 122, 224, 0.1);
-}
-
-.user-card.selected {
-  border-color: #6c7ae0;
-  background: #f0f4ff;
-  box-shadow: 0 2px 8px rgba(108, 122, 224, 0.2);
-}
-
-.user-card.has-response {
-  border-left: 4px solid #48bb78;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.user-info strong {
-  color: #2d3748;
+.status-badge {
+  background: #48bb78;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
-.user-info span {
+.last-updated {
   color: #666;
   font-size: 0.875rem;
+}
+
+.collaboration-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.collaboration-info strong {
+  color: #2d3748;
+  font-size: 0.875rem;
+}
+
+.collaborator-badge {
+  background: #e2e8f0;
+  color: #4a5568;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .response-status {

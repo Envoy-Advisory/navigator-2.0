@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Organization {
-  id                Int      @id @default(autoincrement())
-  name              String   @unique @db.VarChar(255)
-  subscription_type String   @default("basic") @db.VarChar(50)
-  settings          Json     @default("{}")
-  created_at        DateTime @default(now())
+  id                Int            @id @default(autoincrement())
+  name              String         @unique @db.VarChar(255)
+  subscription_type String         @default("basic") @db.VarChar(50)
+  settings          Json           @default("{}")
+  created_at        DateTime       @default(now())
   users             User[]
+  formResponses     FormResponse[]
 
   @@map("organizations")
 }
@@ -87,15 +88,17 @@ model Form {
 }
 
 model FormResponse {
-  id         Int      @id @default(autoincrement())
-  formId     Int
-  userId     Int
-  answers    Json     // Object with questionId as key and answer as value
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
-  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              Int          @id @default(autoincrement())
+  formId          Int
+  organizationId  Int
+  userId          Int          // Keep userId to track who last updated
+  answers         Json         // Object with questionId as key and answer as value
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  form            Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([formId, userId])
+  @@unique([formId, organizationId])
   @@map("form_responses")
 }
