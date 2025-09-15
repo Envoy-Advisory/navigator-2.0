@@ -41,7 +41,7 @@ interface FormQuestion {
   id: number;
   formId: number;
   text: string;
-  type: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox';
+  type: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'dropdown';
   options?: string[];
   required: boolean;
 }

@@ -38,18 +38,21 @@ interface CMSForm {
 
 interface FormQuestion {
   id: string;
-  type: 'yesno' | 'checkbox' | 'dropdown' | 'text';
+  type: 'yesno' | 'checkbox' | 'dropdown' | 'text' | 'textarea' | 'select';
   question: string;
   options?: string[];
   required?: boolean;
 }
 
 interface FormResponse {
-  id: number;
-  formId: number;
-  userId: number;
-  answers: { [questionId: string]: any };
-  created_at: string;
+  id: string;
+  formId: string;
+  userId: string;
+  organizationId: string;
+  responses: { [key: string]: any };
+  answers: { [key: string]: any };
+  lastModified: string;
+  modifiedBy: string;
   updated_at: string;
 }
 
@@ -73,7 +76,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(false);
   const [organizationUsers, setOrganizationUsers] = useState<User[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null); // Keep selectedUserId for organization view
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null); // Keep selectedUserId for organization view
 
   useEffect(() => {
     fetchModules();
@@ -184,7 +187,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
-  const fetchOrganizationUsers = async (formId: number) => {
+  const fetchOrganizationUsers = async (formId: string) => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/forms/${formId}/organization/users`, {
@@ -207,7 +210,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
-  const fetchUserFormResponse = async (formId: number, userId: number) => {
+  const fetchUserFormResponse = async (formId: string, userId: string) => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/forms/${formId}/user/${userId}/response`, {
@@ -233,7 +236,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     }
   };
 
-  const saveUserFormResponse = async (formId: number, userId: number, answers: { [questionId: string]: any }) => {
+  const saveUserFormResponse = async (formId: string, userId: string, answers: { [questionId: string]: any }) => {
     try {
       setContentLoading(true);
       const token = localStorage.getItem('authToken');
@@ -295,7 +298,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     setSelectedUserId(null); // Clear selected user
     fetchFormResponse(form.id);
     if (currentUser.organizationId) {
-      fetchOrganizationUsers(form.id); // Fetch organization users
+      fetchOrganizationUsers(form.id.toString()); // Fetch organization users
     }
   };
 
@@ -310,7 +313,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
     if (!selectedForm) return;
 
     if (selectedUserId) { // If an organization member's response is being edited
-      await saveUserFormResponse(selectedForm.id, selectedUserId, formAnswers);
+      await saveUserFormResponse(selectedForm.id.toString(), selectedUserId, formAnswers);
     } else { // Saving the current user's response
       try {
         setContentLoading(true);
@@ -597,7 +600,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                         if (selectedUserId === null) { // Currently viewing own response, switch to organization view
                           setSelectedUserId(organizationUsers.length > 0 ? organizationUsers[0].id : null); // Select first user by default
                           if (organizationUsers.length > 0 && organizationUsers[0].id) {
-                            fetchUserFormResponse(selectedForm.id, organizationUsers[0].id);
+                            fetchUserFormResponse(selectedForm.id.toString(), organizationUsers[0].id);
                           }
                         } else { // Currently viewing an organization member's response, switch back to own response
                           setSelectedUserId(null);
@@ -627,7 +630,7 @@ const ContentViewer: React.FC<ContentViewerProps> = ({ currentUser }) => {
                           className={`user-card ${isSelected ? 'selected' : ''} ${userResponse ? 'has-response' : ''}`}
                           onClick={() => {
                             setSelectedUserId(user.id);
-                            fetchUserFormResponse(selectedForm.id, user.id);
+                            fetchUserFormResponse(selectedForm.id.toString(), user.id);
                           }}
                         >
                           <div className="user-info">

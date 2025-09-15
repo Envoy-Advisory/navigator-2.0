@@ -1345,7 +1345,7 @@ const AdminPanel: React.FC<{
 
       if (response.ok) {
         if (selectedModule) {
-          fetchForms(parseInt(selectedModule.id));
+          fetchForms(selectedModule.id);
         }
         alert('Form deleted successfully!');
       }
