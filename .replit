@@ -27,7 +27,7 @@ localPort = 5174
 externalPort = 3000
 
 [workflows]
-runButton = "Restart Full Stack"
+runButton = "Full Stack Development"
 
 [[workflows.workflow]]
 name = "Start Development Server"
