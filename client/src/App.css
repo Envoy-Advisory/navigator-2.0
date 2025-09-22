@@ -1381,18 +1381,13 @@ body {
 }
 
 /* CMS Admin Styles */
-.admin-panel {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-/* CMS Layout */
 .cms-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-top: 2rem;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .modules-panel, .articles-panel {
@@ -1400,6 +1395,10 @@ body {
   border-radius: 8px;
   background: white;
   overflow: hidden;
+  min-width: 0; /* Allows flex items to shrink below their content size */
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header {
@@ -1481,6 +1480,8 @@ body {
 .articles-list {
   max-height: 500px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .article-item {
@@ -1489,17 +1490,35 @@ body {
   align-items: flex-start;
   padding: 1rem;
   border-bottom: 1px solid #e0e0e0;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* Allows flex items to shrink */
 }
 
 .article-info {
   flex: 1;
   margin-right: 1rem;
+  min-width: 0; /* Allows content to shrink and wrap */
+  overflow: hidden;
 }
 
 .article-info h4 {
   margin: 0 0 0.5rem 0;
   color: #333;
   font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* For very long titles on larger screens */
+@media (min-width: 769px) {
+  .article-info h4 {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 2rem); /* Account for button space */
+  }
 }
 
 .article-info p {
@@ -1507,12 +1526,16 @@ body {
   color: #666;
   font-size: 0.9rem;
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .article-actions {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+  min-width: fit-content;
+  align-items: flex-start;
 }
 
 /* Button Styles */
@@ -1566,6 +1589,248 @@ body {
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.modal-content.large {
+  max-width: 800px;
+}
+
+.modal-content.extra-large {
+  max-width: 1200px;
+  width: 95%;
+}
+
+/* Rich Text Editor Styles */
+.rich-text-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 0.25rem;
+  border-right: 1px solid #e0e0e0;
+  padding-right: 0.5rem;
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.rich-text-toolbar button,
+.file-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.rich-text-toolbar button:hover,
+.file-upload-btn:hover {
+  background: #e9ecef;
+  border-color: #999;
+}
+
+.content-editor-container {
+  position: relative;
+  border: 1px solid #e0e0e0;
+  border-radius: 0 0 8px 8px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.content-editor-container.dragging {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+#content-editor {
+  width: 100%;
+  min-height: 300px;
+  padding: 1rem;
+  border: none;
+  resize: vertical;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 123, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #007bff;
+  border-radius: 0 0 8px 8px;
+}
+
+.drop-message {
+  background: #007bff;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.content-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.content-preview h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.preview-content {
+  background: white;
+  padding: 1rem;
+  border-radius: 4px;
+  min-height: 100px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preview-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1rem 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.preview-content video {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 4px;
+}
+
+/* Drag and Drop Article Styles */
+.article-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  transition: all 0.2s;
+  cursor: move;
+}
+
+.article-item:hover {
+  background: #f8f9fa;
+}
+
+.article-item.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.article-item.drag-over {
+  border-top: 3px solid #007bff;
+  background: #f0f8ff;
+}
+
+.drag-handle {
+  color: #999;
+  font-weight: bold;
+  margin-right: 1rem;
+  padding: 0.25rem;
+  cursor: grab;
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.article-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.save-btn {
+  background: #28a745;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.save-btn:hover {
+  background: #218838;
+}
+
+.cancel-btn {
+  background: #6c757d;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.cancel-btn:hover {
+  background: #5a6268;
 }
 
 .modal-content.large {
@@ -1633,6 +1898,88 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
+}
+
+/* Responsive Design for CMS */
+@media (max-width: 1024px) {
+  .cms-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .container {
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .cms-layout {
+    margin-top: 1rem;
+  }
+  
+  .panel-header {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .panel-header h3 {
+    text-align: center;
+  }
+  
+  #content-editor {
+    font-size: 13px;
+    padding: 0.75rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .rich-text-toolbar {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  /* Article item mobile adjustments */
+  .article-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .article-info {
+    margin-right: 0;
+  }
+  
+  .article-info h4 {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: initial;
+  }
+  
+  .article-actions {
+    align-self: flex-end;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+/* Prevent horizontal overflow on all screen sizes */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.App {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .cancel-btn:hover {
