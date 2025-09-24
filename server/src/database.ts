@@ -29,8 +29,7 @@ export async function initializeDatabase(): Promise<void> {
     console.log('Database connection test successful');
   } catch (error) {
     console.error('Error connecting to database:', error);
-    // Don't throw here to allow the server to start even if DB is temporarily unavailable
-    console.log('Server will continue starting. Database operations will retry automatically.');
+    throw error;
   }
 }
 
