@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
@@ -71,6 +70,33 @@ interface Testimonial {
   videoUrl?: string;
   rating: number;
 }
+
+// New interface for Form
+interface Form {
+  id: string;
+  moduleId: string;
+  formName: string;
+  title?: string; // For backwards compatibility
+  questions: FormQuestion[];
+  responses?: { [userId: string]: FormResponse };
+}
+
+// New interface for FormQuestion
+interface FormQuestion {
+  id: string;
+  text: string;
+  type: 'text' | 'textarea' | 'select' | 'checkbox'; // Added 'select' and 'checkbox'
+  options?: string[];
+  required: boolean;
+}
+
+// New interface for FormResponse
+interface FormResponse {
+  userId: string;
+  answers: { [questionId: string]: string | string[] };
+  submittedAt: Date;
+}
+
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -197,6 +223,9 @@ const App: React.FC = () => {
     }
   ]);
 
+  // State for forms
+  const [forms, setForms] = useState<Form[]>([]);
+
   useEffect(() => {
     // Check for existing auth token and verify it
     const verifyToken = async () => {
@@ -236,7 +265,7 @@ const App: React.FC = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-
+      console.log("actual response: ",response);
       const data = await response.json();
 
       if (response.ok) {
@@ -298,17 +327,21 @@ const App: React.FC = () => {
   return (
     <Router>
       <div className="App">
-        <Header 
-          currentUser={currentUser} 
-          onLogin={() => setShowLoginForm(true)} 
-          onLogout={logout} 
+        <Header
+          currentUser={currentUser}
+          onLogin={() => setShowLoginForm(true)}
+          onLogout={logout}
         />
-        
+
         <Routes>
           <Route path="/" element={<HomePage testimonials={testimonials} />} />
           <Route path="/program" element={<ProgramPage />} />
           <Route path="/articles" element={
             currentUser ? <ArticleViewer currentUser={currentUser} /> : <Redirect to="/" />
+          } />
+          {/* Route for Forms */}
+          <Route path="/forms/:moduleId" element={
+            currentUser ? <FormViewer currentUser={currentUser} modules={modules} forms={forms} /> : <Redirect to="/" />
           } />
           <Route path="/dashboard" element={
             currentUser ? <Dashboard currentUser={currentUser} modules={modules} /> : <Redirect to="/" />
@@ -335,8 +368,8 @@ const App: React.FC = () => {
         </Routes>
 
         {showLoginForm && (
-          <LoginModal 
-            onLogin={login} 
+          <LoginModal
+            onLogin={login}
             onClose={() => setShowLoginForm(false)}
             onSwitchToRegister={() => {
               setShowLoginForm(false);
@@ -346,8 +379,8 @@ const App: React.FC = () => {
         )}
 
         {showRegistrationForm && (
-          <RegistrationModal 
-            onRegister={register} 
+          <RegistrationModal
+            onRegister={register}
             onClose={() => setShowRegistrationForm(false)}
             onSwitchToLogin={() => {
               setShowRegistrationForm(false);
@@ -362,7 +395,7 @@ const App: React.FC = () => {
 
 const Redirect: React.FC<{ to: string }> = ({ to }) => {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     navigate(to);
   }, [navigate, to]);
@@ -381,11 +414,12 @@ const Header: React.FC<{
         <h1>Fair Chance Navigator 2.0</h1>
         <p>Building Inclusive Hiring Strategies</p>
       </Link>
-      
+
       <nav className="header-nav">
         <Link to="/" className="nav-link">Home</Link>
-        <Link to="/program" className="nav-link">Program</Link>
+        {!currentUser && <Link to="/program" className="nav-link">Program</Link>}
         {currentUser && <Link to="/articles" className="nav-link">Articles</Link>}
+        {/* Link to Forms */}
         {currentUser && <Link to="/dashboard" className="nav-link">Dashboard</Link>}
         <Link to="/faq" className="nav-link">FAQ</Link>
       </nav>
@@ -605,8 +639,8 @@ const ProgramPage: React.FC = () => {
           <h2>Choose Your Plan</h2>
           <div className="pricing-grid">
             {Object.entries(plans).map(([key, plan]) => (
-              <div 
-                key={key} 
+              <div
+                key={key}
                 className={`pricing-card ${selectedPlan === key ? 'selected' : ''}`}
                 onClick={() => setSelectedPlan(key as any)}
               >
@@ -652,7 +686,7 @@ const Dashboard: React.FC<{ currentUser: User; modules: Module[] }> = ({ current
       <div className="welcome-section">
         <h2>Welcome back, {currentUser.name}</h2>
         <p>Continue your inclusive hiring journey</p>
-        
+
         <div className="progress-overview">
           <h3>Your Progress</h3>
           <div className="progress-bar">
@@ -697,8 +731,8 @@ const ModulesPage: React.FC<{
   currentUser: User;
 }> = ({ modules, setModules, currentUser }) => {
   const toggleModuleCompletion = (moduleId: string) => {
-    setModules(prev => prev.map(module => 
-      module.id === moduleId 
+    setModules(prev => prev.map(module =>
+      module.id === moduleId
         ? { ...module, completed: !module.completed }
         : module
     ));
@@ -708,25 +742,25 @@ const ModulesPage: React.FC<{
     <div className="modules-page">
       <h2>Learning Modules</h2>
       <p>Complete these modules to build comprehensive inclusive hiring strategies.</p>
-      
+
       <div className="modules-container">
         {modules.map((module) => (
           <div key={module.id} className={`module-card ${module.completed ? 'completed' : ''}`}>
             <div className="module-icon">{module.icon}</div>
             <h3>{module.title}</h3>
             <p>{module.description}</p>
-            
+
             <div className="module-worksheets">
               {module.worksheets.length > 0 && (
                 <p>{module.worksheets.length} worksheet(s) available</p>
               )}
             </div>
-            
+
             <div className="module-actions">
               <Link to={`/module/${module.id}`} className="start-btn">
                 {module.completed ? 'Review' : 'Start'}
               </Link>
-              <button 
+              <button
                 className="complete-btn"
                 onClick={() => toggleModuleCompletion(module.id)}
               >
@@ -754,7 +788,7 @@ const ModuleDetail: React.FC<{
   return (
     <div className="module-detail">
       <Link to="/modules" className="back-btn">← Back to Modules</Link>
-      
+
       <div className="module-header">
         <span className="module-icon-large">{module.icon}</span>
         <h2>{module.title}</h2>
@@ -814,7 +848,7 @@ const WorksheetEditor: React.FC<{
 }> = ({ modules, setModules, currentUser }) => {
   const location = useLocation();
   const worksheetId = location.pathname.split('/').pop();
-  
+
   const worksheet = modules
     .flatMap(m => m.worksheets)
     .find(w => w.id === worksheetId);
@@ -833,8 +867,8 @@ const WorksheetEditor: React.FC<{
   const handleSave = () => {
     setModules(prev => prev.map(module => ({
       ...module,
-      worksheets: module.worksheets.map(w => 
-        w.id === worksheetId 
+      worksheets: module.worksheets.map(w =>
+        w.id === worksheetId
           ? {
               ...w,
               responses: {
@@ -861,10 +895,10 @@ const WorksheetEditor: React.FC<{
         <h2>{worksheet.title}</h2>
         <div className="worksheet-options">
           <label>
-            <input 
-              type="checkbox" 
-              checked={isShared} 
-              onChange={(e) => setIsShared(e.target.checked)} 
+            <input
+              type="checkbox"
+              checked={isShared}
+              onChange={(e) => setIsShared(e.target.checked)}
             />
             Share with team
           </label>
@@ -878,7 +912,7 @@ const WorksheetEditor: React.FC<{
               {question.text}
               {question.required && <span className="required">*</span>}
             </label>
-            
+
             {question.type === 'text' && (
               <input
                 type="text"
@@ -887,7 +921,7 @@ const WorksheetEditor: React.FC<{
                 className="question-input"
               />
             )}
-            
+
             {question.type === 'textarea' && (
               <textarea
                 value={responses[question.id] as string || ''}
@@ -896,7 +930,7 @@ const WorksheetEditor: React.FC<{
                 rows={4}
               />
             )}
-            
+
             {question.type === 'multiple_choice' && question.options && (
               <div className="question-options">
                 {question.options.map(option => (
@@ -1013,10 +1047,16 @@ const AdminPanel: React.FC<{
   const [cmsModules, setCmsModules] = useState<CMSModule[]>([]);
   const [selectedModule, setSelectedModule] = useState<CMSModule | null>(null);
   const [articles, setArticles] = useState<CMSArticle[]>([]);
+  const [forms, setForms] = useState<Form[]>([]); // State for forms
   const [editingModule, setEditingModule] = useState<CMSModule | null>(null);
   const [editingArticle, setEditingArticle] = useState<CMSArticle | null>(null);
+  const [editingForm, setEditingForm] = useState<Form | null>(null); // State for editing a form
   const [showModuleForm, setShowModuleForm] = useState(false);
   const [showArticleForm, setShowArticleForm] = useState(false);
+  const [showFormForm, setShowFormForm] = useState(false); // State for showing the form form
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [formsLoading, setFormsLoading] = useState(false); // State for forms loading
+  const [activeTab, setActiveTab] = useState<'articles' | 'actions'>('articles'); // Add activeTab state
 
   // Fetch modules on component mount
   useEffect(() => {
@@ -1031,7 +1071,7 @@ const AdminPanel: React.FC<{
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setCmsModules(data);
@@ -1042,6 +1082,7 @@ const AdminPanel: React.FC<{
   };
 
   const fetchArticles = async (moduleId: number) => {
+    setArticlesLoading(true);
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/modules/${moduleId}/articles`, {
@@ -1049,13 +1090,41 @@ const AdminPanel: React.FC<{
           'Authorization': `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setArticles(data);
+      } else {
+        console.error('Failed to fetch articles');
       }
     } catch (error) {
       console.error('Error fetching articles:', error);
+    } finally {
+      setArticlesLoading(false);
+    }
+  };
+
+  // New function to fetch forms
+  const fetchForms = async (moduleId: number) => {
+    setFormsLoading(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/modules/${moduleId}/forms`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setForms(data);
+      } else {
+        console.error('Failed to fetch forms');
+      }
+    } catch (error) {
+      console.error('Error fetching forms:', error);
+    } finally {
+      setFormsLoading(false);
     }
   };
 
@@ -1104,7 +1173,7 @@ const AdminPanel: React.FC<{
   };
 
   const handleDeleteModule = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this module? This will also delete all associated articles.')) {
+    if (!confirm('Are you sure you want to delete this module? This will also delete all associated articles and forms.')) {
       return;
     }
 
@@ -1122,6 +1191,7 @@ const AdminPanel: React.FC<{
         if (selectedModule?.id === id) {
           setSelectedModule(null);
           setArticles([]);
+          setForms([]);
         }
         alert('Module deleted successfully!');
       }
@@ -1203,46 +1273,118 @@ const AdminPanel: React.FC<{
     }
   };
 
+  // Handlers for Forms
+  const handleCreateForm = async (formDataToSave: { title: string; questions: FormQuestion[] }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('/api/forms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          moduleId: selectedModule?.id,
+          formName: formDataToSave.title,
+          questions: formDataToSave.questions
+        }),
+      });
+
+      if (response.ok) {
+        if (selectedModule) {
+          fetchForms(selectedModule.id);
+        }
+        setShowFormForm(false);
+        alert('Form created successfully!');
+      }
+    } catch (error) {
+      console.error('Error creating form:', error);
+    }
+  };
+
+  const handleUpdateForm = async (id: string, formDataToSave: { title: string; questions: FormQuestion[] }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          formName: formDataToSave.title,
+          questions: formDataToSave.questions
+        }),
+      });
+
+      if (response.ok) {
+        if (selectedModule) {
+          fetchForms(selectedModule.id);
+        }
+        setEditingForm(null);
+        alert('Form updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating form:', error);
+    }
+  };
+
+  const handleDeleteForm = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this form?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/forms/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        if (selectedModule) {
+          fetchForms(selectedModule.id);
+        }
+        alert('Form deleted successfully!');
+      }
+    } catch (error) {
+      console.error('Error deleting form:', error);
+    }
+  };
+
+
   const handleReorderArticles = async (reorderedArticles: CMSArticle[]) => {
     try {
       console.log('handleReorderArticles called with:', reorderedArticles);
-      
-      // Validate input data
+
       if (!reorderedArticles || reorderedArticles.length === 0) {
         console.error('No articles to reorder');
         return;
       }
 
-      // Convert string IDs to numbers if necessary and validate
       const validArticles = reorderedArticles.map(article => {
         console.log('Processing article:', article);
-        
-        // Skip any non-article objects
         if (!article || typeof article !== 'object') {
           console.warn('Skipping non-object:', article);
           return null;
         }
-        
-        // Skip objects that don't look like articles
         if (typeof article.id === 'string' && article.id === 'reorder') {
           console.warn('Skipping reorder object:', article);
           return null;
         }
-        
         return {
           ...article,
           id: typeof article.id === 'string' ? parseInt(article.id, 10) : article.id
         };
       }).filter((article): article is CMSArticle => {
         if (!article) return false;
-        
         const hasValidId = article.id && !isNaN(article.id) && article.id > 0;
         const hasArticleName = !!article.articleName;
         const hasContent = !!article.content;
         const hasModuleId = !!article.moduleId;
-        
         const isValid = !!hasValidId && hasArticleName && hasContent && hasModuleId;
-        
         if (!isValid) {
           console.warn('Invalid article found:', article);
           console.warn('ID valid:', !!hasValidId, 'ID:', article.id);
@@ -1293,13 +1435,11 @@ const AdminPanel: React.FC<{
       if (response.ok) {
         const responseData = await response.json();
         console.log('Articles reordered successfully:', responseData);
-        // Update local state with the reordered articles
         setArticles(validArticles);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
         console.error('Failed to reorder articles:', errorData);
         alert(`Failed to reorder articles: ${errorData.error || 'Unknown error'}`);
-        // Refresh articles to restore original order
         if (selectedModule) {
           fetchArticles(selectedModule.id);
         }
@@ -1307,7 +1447,6 @@ const AdminPanel: React.FC<{
     } catch (error) {
       console.error('Error reordering articles:', error);
       alert('Network error while reordering articles. Please try again.');
-      // Refresh articles to restore original order
       if (selectedModule) {
         fetchArticles(selectedModule.id);
       }
@@ -1317,23 +1456,24 @@ const AdminPanel: React.FC<{
   const selectModule = (module: CMSModule) => {
     setSelectedModule(module);
     fetchArticles(module.id);
+    fetchForms(module.id); // Fetch forms when a module is selected
   };
 
   return (
     <div className="admin-panel">
       <h2>Content Management System</h2>
-      
+
       <div className="cms-layout">
         <div className="modules-panel">
           <div className="panel-header">
             <h3>Modules</h3>
             <button onClick={() => setShowModuleForm(true)} className="add-btn">+ Add Module</button>
           </div>
-          
+
           <div className="modules-list">
             {cmsModules.map(module => (
-              <div 
-                key={module.id} 
+              <div
+                key={module.id}
                 className={`module-item ${selectedModule?.id === module.id ? 'selected' : ''}`}
                 onClick={() => selectModule(module)}
               >
@@ -1352,94 +1492,141 @@ const AdminPanel: React.FC<{
 
         <div className="articles-panel">
           <div className="panel-header">
-            <h3>{selectedModule ? `Articles in ${selectedModule.moduleName}` : 'Select a module'}</h3>
+            <h3>{selectedModule ? `Content in ${selectedModule.moduleName}` : 'Select a module'}</h3>
             {selectedModule && (
-              <button onClick={() => setShowArticleForm(true)} className="add-btn">+ Add Article</button>
+              <>
+                <button onClick={() => setShowArticleForm(true)} className="add-btn">+ Add Article</button>
+                <button onClick={() => setShowFormForm(true)} className="add-btn">+ Add Action</button>
+              </>
             )}
           </div>
-          
+
           {selectedModule && (
-            <div className="articles-list">
-              {articles.map((article, index) => (
-                <div 
-                  key={article.id} 
-                  className="article-item"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', index.toString());
-                    e.currentTarget.classList.add('dragging');
-                  }}
-                  onDragEnd={(e) => {
-                    e.currentTarget.classList.remove('dragging');
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.classList.add('drag-over');
-                  }}
-                  onDragLeave={(e) => {
-                    e.currentTarget.classList.remove('drag-over');
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.currentTarget.classList.remove('drag-over');
-                    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                    const targetIndex = index;
-                    
-                    if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0 && draggedIndex < articles.length && targetIndex < articles.length) {
-                      const newArticles = [...articles];
-                      const draggedArticle = newArticles[draggedIndex];
-                      
-                      console.log('Drag and drop - draggedArticle:', draggedArticle);
-                      console.log('Drag and drop - all articles:', articles);
-                      
-                      // Validate that the dragged article exists and has a valid ID
-                      if (!draggedArticle || (!draggedArticle.id && draggedArticle.id !== 0)) {
-                        console.error('Invalid article being dragged:', draggedArticle);
-                        alert('Invalid article data. Please refresh the page and try again.');
-                        return;
-                      }
-                      
-                      // Ensure ID is a number
-                      const articleId = typeof draggedArticle.id === 'string' ? parseInt(draggedArticle.id, 10) : draggedArticle.id;
-                      if (isNaN(articleId) || articleId <= 0) {
-                        console.error('Invalid article ID:', draggedArticle.id);
-                        alert('Invalid article ID. Please refresh the page and try again.');
-                        return;
-                      }
-                      
-                      // Create the reordered article with validated data
-                      const reorderedArticle = {
-                        id: articleId,
-                        moduleId: draggedArticle.moduleId,
-                        articleName: draggedArticle.articleName,
-                        content: draggedArticle.content
-                      };
-                      
-                      newArticles.splice(draggedIndex, 1);
-                      newArticles.splice(targetIndex, 0, reorderedArticle);
-                      
-                      console.log('New articles after reorder:', newArticles);
-                      
-                      // Update local state immediately for responsive UI
-                      setArticles(newArticles);
-                      
-                      // Update article positions on server
-                      handleReorderArticles(newArticles);
-                    }
-                  }}
+            <>
+              <div className="content-tabs">
+                <button 
+                  className={`tab-button ${activeTab === 'articles' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('articles')}
                 >
-                  <div className="drag-handle">⋮⋮</div>
-                  <div className="article-info">
-                    <h4>{article.articleName}</h4>
-                    <p>{article.content.length > 100 ? article.content.substring(0, 100) + '...' : article.content}</p>
-                  </div>
-                  <div className="article-actions">
-                    <button onClick={() => setEditingArticle(article)} className="edit-btn">Edit</button>
-                    <button onClick={() => handleDeleteArticle(article.id)} className="delete-btn">Delete</button>
-                  </div>
+                  Articles
+                </button>
+                <button 
+                  className={`tab-button ${activeTab === 'actions' ? 'active' : ''}`} 
+                  onClick={() => setActiveTab('actions')}
+                >
+                  Actions
+                </button>
+              </div>
+
+              {activeTab === 'articles' ? (
+                <div className="articles-list">
+                  {articles.map((article, index) => (
+                    <div
+                      key={article.id}
+                      className="article-item"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', index.toString());
+                        e.currentTarget.classList.add('dragging');
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.classList.remove('dragging');
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('drag-over');
+                      }}
+                      onDragLeave={(e) => {
+                        e.currentTarget.classList.remove('drag-over');
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('drag-over');
+                        const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                        const targetIndex = index;
+
+                        if (draggedIndex !== targetIndex && draggedIndex >= 0 && targetIndex >= 0 && draggedIndex < articles.length && targetIndex < articles.length) {
+                          const newArticles = [...articles];
+                          const draggedArticle = newArticles[draggedIndex];
+
+                          console.log('Drag and drop - draggedArticle:', draggedArticle);
+                          console.log('Drag and drop - all articles:', articles);
+
+                          if (!draggedArticle || (!draggedArticle.id && draggedArticle.id !== 0)) {
+                            console.error('Invalid article being dragged:', draggedArticle);
+                            alert('Invalid article data. Please refresh the page and try again.');
+                            return;
+                          }
+
+                          const articleId = typeof draggedArticle.id === 'string' ? parseInt(draggedArticle.id, 10) : draggedArticle.id;
+                          if (isNaN(articleId) || articleId <= 0) {
+                            console.error('Invalid article ID:', draggedArticle.id);
+                            alert('Invalid article ID. Please refresh the page and try again.');
+                            return;
+                          }
+
+                          const reorderedArticle = {
+                            id: articleId,
+                            moduleId: draggedArticle.moduleId,
+                            articleName: draggedArticle.articleName,
+                            content: draggedArticle.content
+                          };
+
+                          newArticles.splice(draggedIndex, 1);
+                          newArticles.splice(targetIndex, 0, reorderedArticle);
+
+                          console.log('New articles after reorder:', newArticles);
+                          setArticles(newArticles);
+                          handleReorderArticles(newArticles);
+                        }
+                      }}
+                    >
+                      <div className="drag-handle">⋮⋮</div>
+                      <div className="article-info">
+                        <h4>{article.articleName}</h4>
+                        <p>{article.content.length > 100 ? article.content.substring(0, 100) + '...' : article.content}</p>
+                      </div>
+                      <div className="article-actions">
+                        <button onClick={() => setEditingArticle(article)} className="edit-btn">Edit</button>
+                        <button onClick={() => handleDeleteArticle(article.id)} className="delete-btn">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                  {articles.length === 0 && (
+                    <div className="no-content-message">
+                      No articles in this module
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="forms-list">
+                  {formsLoading ? (
+                    <div className="loading-forms">
+                      <div className="loading-spinner"></div>
+                      Loading actions...
+                    </div>
+                  ) : forms.length > 0 ? (
+                    forms.map((form, index) => (
+                      <div key={form.id} className="form-item">
+                        <div className="drag-handle">⋮⋮</div>
+                        <div className="form-info">
+                          <h4>{form.formName}</h4>
+                          <p>{form.questions ? form.questions.length : 0} questions</p>
+                        </div>
+                        <div className="form-actions">
+                          <button onClick={() => setEditingForm(form)} className="edit-btn">Edit</button>
+                          <button onClick={() => handleDeleteForm(form.id)} className="delete-btn">Delete</button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-content-message">
+                      No actions in this module
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -1448,8 +1635,8 @@ const AdminPanel: React.FC<{
       {(showModuleForm || editingModule) && (
         <ModuleForm
           module={editingModule}
-          onSave={editingModule ? 
-            (data) => handleUpdateModule(editingModule.id, data) : 
+          onSave={editingModule ?
+            (data) => handleUpdateModule(editingModule.id, data) :
             handleCreateModule
           }
           onCancel={() => {
@@ -1464,13 +1651,29 @@ const AdminPanel: React.FC<{
         <ArticleForm
           article={editingArticle}
           moduleId={selectedModule.id}
-          onSave={editingArticle ? 
-            (data) => handleUpdateArticle(editingArticle.id, data) : 
+          onSave={editingArticle ?
+            (data) => handleUpdateArticle(editingArticle.id, data) :
             handleCreateArticle
           }
           onCancel={() => {
             setShowArticleForm(false);
             setEditingArticle(null);
+          }}
+        />
+      )}
+
+      {/* Form Form Modal */}
+      {(showFormForm || editingForm) && selectedModule && (
+        <FormForm
+          form={editingForm}
+          moduleId={selectedModule.id}
+          onSave={editingForm ?
+            (data) => handleUpdateForm(editingForm.id, data) :
+            handleCreateForm
+          }
+          onCancel={() => {
+            setShowFormForm(false);
+            setEditingForm(null);
           }}
         />
       )}
@@ -1536,8 +1739,8 @@ const ArticleForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data = article ? 
-      { articleName, content } : 
+    const data = article ?
+      { articleName, content } :
       { moduleId, articleName, content };
     onSave(data);
   };
@@ -1549,8 +1752,7 @@ const ArticleForm: React.FC<{
       const end = textarea.selectionEnd;
       const newContent = content.substring(0, start) + text + content.substring(end);
       setContent(newContent);
-      
-      // Restore cursor position
+
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + text.length, start + text.length);
@@ -1564,7 +1766,7 @@ const ArticleForm: React.FC<{
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = content.substring(start, end);
-      
+
       let formattedText = '';
       switch (formatType) {
         case 'bold':
@@ -1600,10 +1802,10 @@ const ArticleForm: React.FC<{
         default:
           return;
       }
-      
+
       const newContent = content.substring(0, start) + formattedText + content.substring(end);
       setContent(newContent);
-      
+
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
@@ -1617,29 +1819,28 @@ const ArticleForm: React.FC<{
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selectedText = content.substring(start, end);
-      
-      // Create a color input element
+
       const colorInput = document.createElement('input');
       colorInput.type = 'color';
       colorInput.value = '#ff0000';
       colorInput.style.position = 'absolute';
       colorInput.style.top = '-9999px';
       document.body.appendChild(colorInput);
-      
+
       colorInput.onchange = () => {
         const color = colorInput.value;
         const formattedText = `<span style="color: ${color}">${selectedText || 'colored text'}</span>`;
         const newContent = content.substring(0, start) + formattedText + content.substring(end);
         setContent(newContent);
-        
+
         setTimeout(() => {
           textarea.focus();
           textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
         }, 0);
-        
+
         document.body.removeChild(colorInput);
       };
-      
+
       colorInput.click();
     }
   };
@@ -1662,7 +1863,7 @@ const ArticleForm: React.FC<{
         const data = await response.json();
         const fileInfo = data.file;
         const fileUrl = fileInfo.url;
-        
+
         if (file.type.startsWith('image/')) {
           insertAtCursor(`<img src="${fileUrl}" alt="${fileInfo.originalName}" style="max-width: 100%; height: auto;" />`);
         } else {
@@ -1693,11 +1894,11 @@ const ArticleForm: React.FC<{
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     files.forEach(file => {
-      if (file.type.startsWith('image/') || 
-          file.type === 'application/pdf' || 
+      if (file.type.startsWith('image/') ||
+          file.type === 'application/pdf' ||
           file.type.includes('document') ||
           file.type.includes('word')) {
         handleFileUpload(file);
@@ -1729,11 +1930,10 @@ const ArticleForm: React.FC<{
               required
             />
           </div>
-          
+
           <div className="form-group">
             <label>Content:</label>
-            
-            {/* Rich Text Toolbar */}
+
             <div className="rich-text-toolbar">
               <div className="toolbar-group">
                 <button type="button" onClick={() => formatText('bold')} title="Bold">
@@ -1746,7 +1946,7 @@ const ArticleForm: React.FC<{
                   <u>U</u>
                 </button>
               </div>
-              
+
               <div className="toolbar-group">
                 <button type="button" onClick={() => formatText('heading1')} title="Heading 1">
                   H1
@@ -1758,7 +1958,7 @@ const ArticleForm: React.FC<{
                   H3
                 </button>
               </div>
-              
+
               <div className="toolbar-group">
                 <button type="button" onClick={handleColorPicker} title="Text Color">
                   🎨
@@ -1767,7 +1967,7 @@ const ArticleForm: React.FC<{
                   📏
                 </button>
               </div>
-              
+
               <div className="toolbar-group">
                 <button type="button" onClick={() => formatText('link')} title="Insert Link">
                   🔗
@@ -1779,7 +1979,7 @@ const ArticleForm: React.FC<{
                   🎬
                 </button>
               </div>
-              
+
               <div className="toolbar-group">
                 <label className="file-upload-btn" title="Upload File">
                   📁
@@ -1797,9 +1997,8 @@ const ArticleForm: React.FC<{
                 </label>
               </div>
             </div>
-            
-            {/* Content Editor */}
-            <div 
+
+            <div
               className={`content-editor-container ${isDragging ? 'dragging' : ''}`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -1810,7 +2009,7 @@ const ArticleForm: React.FC<{
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={15}
-                placeholder="Start typing your article content... You can drag and drop images and files here!"
+                placeholder="Start typing your article content... You can drop and drop images and files here!"
                 required
               />
               {isDragging && (
@@ -1821,13 +2020,12 @@ const ArticleForm: React.FC<{
                 </div>
               )}
             </div>
-            
-            {/* Preview */}
+
             <div className="content-preview">
               <h4>Preview:</h4>
-              <div 
+              <div
                 className="preview-content"
-                dangerouslySetInnerHTML={{ 
+                dangerouslySetInnerHTML={{
                   __html: '<p>' + content
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>')
@@ -1844,7 +2042,7 @@ const ArticleForm: React.FC<{
               />
             </div>
           </div>
-          
+
           <div className="form-actions">
             <button type="submit" className="save-btn">Save Article</button>
             <button type="button" onClick={onCancel} className="cancel-btn">Cancel</button>
@@ -1854,6 +2052,237 @@ const ArticleForm: React.FC<{
     </div>
   );
 };
+
+const FormForm: React.FC<{
+  form?: Form | null;
+  moduleId: number;
+  onSave: (data: { title: string; questions: FormQuestion[] }) => void;
+  onCancel: () => void;
+}> = ({ form, moduleId, onSave, onCancel }) => {
+  const [title, setTitle] = useState(form?.title || form?.formName || '');
+  const [questions, setQuestions] = useState<FormQuestion[]>(form?.questions || [
+    { id: 'q1', text: '', type: 'text', required: true }
+  ]);
+
+  const addQuestion = () => {
+    setQuestions([...questions, { id: `q${questions.length + 1}`, text: '', type: 'text', required: true }]);
+  };
+
+  const updateQuestion = (id: string, field: keyof FormQuestion, value: any) => {
+    setQuestions(questions.map(q => (q.id === id ? { ...q, [field]: value } : q)));
+  };
+
+  const removeQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({ title, questions });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-content extra-large" onClick={(e) => e.stopPropagation()}>
+        <h3>{form ? 'Edit Form' : 'Create Form'}</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Form Title:</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Questions:</label>
+            {questions.map((question, index) => (
+              <div key={question.id} className="question-editor">
+                <div className="question-header">
+                  <h4>Question {index + 1}</h4>
+                  <button type="button" onClick={() => removeQuestion(question.id)} className="remove-btn">-</button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Question Text"
+                  value={question.text}
+                  onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                  required
+                />
+                <div className="question-options-editor">
+                  <label>Question Type:</label>
+                  <select
+                    value={question.type}
+                    onChange={(e) => updateQuestion(question.id, 'type', e.target.value as any)}
+                  >
+                    <option value="text">Open Text</option>
+                    <option value="textarea">Long Text</option>
+                    <option value="select">Dropdown (Select)</option>
+                    <option value="checkbox">Checkbox (Multiple Choice)</option>
+                  </select>
+
+                  {(question.type === 'select' || question.type === 'checkbox') && (
+                    <>
+                      <label>Options (one per line):</label>
+                      <textarea
+                        value={question.options?.join('\n') || ''}
+                        onChange={(e) => updateQuestion(question.id, 'options', e.target.value.split('\n'))}
+                        rows={3}
+                        placeholder="Option 1&#10;Option 2"
+                      />
+                    </>
+                  )}
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={question.required}
+                      onChange={(e) => updateQuestion(question.id, 'required', e.target.checked)}
+                    />
+                    Required
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={addQuestion} className="add-question-btn">+ Add Question</button>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="save-btn">Save Form</button>
+            <button type="button" onClick={onCancel} className="cancel-btn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Component to view a form
+const FormViewer: React.FC<{ currentUser: User; modules: Module[]; forms: Form[] }> = ({ currentUser, modules, forms }) => {
+  const location = useLocation();
+  const moduleId = location.pathname.split('/').pop();
+  const module = modules.find(m => m.id === moduleId);
+  const form = forms.find(f => f.moduleId === moduleId);
+
+  const [formResponses, setFormResponses] = useState<{ [questionId: string]: string | string[] }>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  if (!module || !form) return <div>Form or Module not found</div>;
+
+  const handleAnswerChange = (questionId: string, answer: string | string[]) => {
+    setFormResponses({ ...formResponses, [questionId]: answer });
+  };
+
+  const handleSubmitForm = async () => {
+    try {
+      const response = await fetch('/api/forms/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          formId: form.id,
+          userId: currentUser.id,
+          answers: formResponses,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+        alert('Form submitted successfully!');
+      } else {
+        alert('Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      alert('An error occurred. Please try again.');
+    }
+  };
+
+  return (
+    <div className="form-viewer">
+      <div className="form-header">
+        <Link to={`/module/${moduleId}`} className="back-btn">← Back to Module</Link>
+        <h2>{form.title}</h2>
+      </div>
+
+      <div className="form-content">
+        {form.questions.map((question, index) => (
+          <div key={question.id} className="form-question">
+            <label className="question-label">
+              {question.text}
+              {question.required && <span className="required">*</span>}
+            </label>
+
+            {question.type === 'text' && (
+              <input
+                type="text"
+                value={formResponses[question.id] as string || ''}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                className="form-input"
+                required={question.required}
+              />
+            )}
+
+            {question.type === 'textarea' && (
+              <textarea
+                value={formResponses[question.id] as string || ''}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                className="form-textarea"
+                rows={4}
+                required={question.required}
+              />
+            )}
+
+            {(question.type === 'select') && question.options && (
+              <select
+                value={formResponses[question.id] as string || ''}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                required={question.required}
+                className="form-select"
+              >
+                {question.required && <option value="">Select an option</option>}
+                {question.options.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            )}
+
+            {question.type === 'checkbox' && question.options && (
+              <div className="form-checkbox-group">
+                {question.options.map(option => (
+                  <label key={option} className="form-option-label">
+                    <input
+                      type="checkbox"
+                      checked={(formResponses[question.id] as string[])?.includes(option) || false}
+                      onChange={(e) => {
+                        const currentAnswers = formResponses[question.id] as string[] || [];
+                        const newAnswers = e.target.checked
+                          ? [...currentAnswers, option]
+                          : currentAnswers.filter(ans => ans !== option);
+                        handleAnswerChange(question.id, newAnswers);
+                      }}
+                    />
+                    {option}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="form-actions">
+        <button onClick={handleSubmitForm} className="submit-btn" disabled={submitted}>
+          {submitted ? 'Submitted' : 'Submit Form'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 const LoginModal: React.FC<{
   onLogin: (email: string, password: string) => Promise<void>;
@@ -1899,7 +2328,7 @@ const LoginModal: React.FC<{
           </button>
         </form>
         <p className="auth-switch">
-          Don't have an account? 
+          Don't have an account?
           <button onClick={onSwitchToRegister} className="switch-btn">Sign up here</button>
         </p>
       </div>
@@ -1969,7 +2398,7 @@ const RegistrationModal: React.FC<{
           </button>
         </form>
         <p className="auth-switch">
-          Already have an account? 
+          Already have an account?
           <button onClick={onSwitchToLogin} className="switch-btn">Login here</button>
         </p>
       </div>
@@ -1981,28 +2410,28 @@ const FAQ: React.FC = () => (
   <div className="faq-page">
     <div className="container">
       <h1>Frequently Asked Questions</h1>
-      
+
       <div className="faq-list">
         <div className="faq-item">
           <h3>What is Fair Chance Navigator 2.0?</h3>
           <p>Fair Chance Navigator 2.0 is a comprehensive platform designed to help employers develop inclusive hiring strategies for justice-impacted candidates. It provides training modules, tools, and resources to create fair and effective hiring practices.</p>
         </div>
-        
+
         <div className="faq-item">
           <h3>How long does it take to complete the program?</h3>
           <p>The complete program typically takes 4-6 weeks to finish, depending on your pace and organization size. Each module can be completed in 1-2 hours.</p>
         </div>
-        
+
         <div className="faq-item">
           <h3>Can my team collaborate on the platform?</h3>
           <p>Yes! Premium and Enterprise plans include team collaboration features, allowing multiple users from your organization to work together and share progress.</p>
         </div>
-        
+
         <div className="faq-item">
           <h3>Is my data secure?</h3>
           <p>Absolutely. We use industry-standard encryption and security measures to protect all user data. Your information is never shared with third parties without your explicit consent.</p>
         </div>
-        
+
         <div className="faq-item">
           <h3>Do you offer support?</h3>
           <p>Yes, we provide email support for all users, with priority support available for Premium and Enterprise customers. We also offer live chat during business hours.</p>
@@ -2021,22 +2450,22 @@ const PrivacyPolicy: React.FC = () => (
           <h2>Information We Collect</h2>
           <p>We collect information you provide directly to us, such as when you create an account, complete worksheets, or contact us for support.</p>
         </section>
-        
+
         <section>
           <h2>How We Use Your Information</h2>
           <p>We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you.</p>
         </section>
-        
+
         <section>
           <h2>Information Sharing</h2>
           <p>We do not sell, trade, or rent your personal information to third parties. We may share your information only in specific circumstances outlined in this policy.</p>
         </section>
-        
+
         <section>
           <h2>Data Security</h2>
           <p>We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
         </section>
-        
+
         <section>
           <h2>Contact Us</h2>
           <p>If you have questions about this Privacy Policy, please contact us at privacy@fairchancenavigator.com</p>
@@ -2055,22 +2484,22 @@ const TermsConditions: React.FC = () => (
           <h2>Acceptance of Terms</h2>
           <p>By accessing and using Fair Chance Navigator 2.0, you accept and agree to be bound by the terms and provision of this agreement.</p>
         </section>
-        
+
         <section>
           <h2>Use License</h2>
           <p>Permission is granted to temporarily access the materials on Fair Chance Navigator 2.0 for personal, non-commercial transitory viewing only.</p>
         </section>
-        
+
         <section>
           <h2>User Accounts</h2>
           <p>You are responsible for maintaining the confidentiality of your account and password and for restricting access to your computer.</p>
         </section>
-        
+
         <section>
           <h2>Prohibited Uses</h2>
           <p>You may not use our service for any unlawful purpose or to solicit others to perform prohibited conduct.</p>
         </section>
-        
+
         <section>
           <h2>Limitation of Liability</h2>
           <p>In no event shall Fair Chance Navigator 2.0 or its suppliers be liable for any damages arising out of the use or inability to use the materials.</p>
@@ -2090,7 +2519,7 @@ const EmbeddedContent: React.FC = () => {
         <h2>Fair Chance Navigator 2.0</h2>
         <p>Embedded Course Content</p>
       </div>
-      
+
       <div className="embed-body">
         <p>This is embedded content for course: {courseId}</p>
         <div className="embed-features">
@@ -2103,7 +2532,7 @@ const EmbeddedContent: React.FC = () => {
             <p>Monitor your learning journey</p>
           </div>
         </div>
-        
+
         <div className="embed-cta">
           <p>Want the full experience?</p>
           <a href="/" className="embed-link">Visit Fair Chance Navigator 2.0</a>
