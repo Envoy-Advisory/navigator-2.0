@@ -8,26 +8,28 @@ datasource db {
 }
 
 model Organization {
-  id                Int      @id @default(autoincrement())
-  name              String   @db.VarChar(255)
-  subscription_type String   @default("basic") @db.VarChar(50)
-  settings          Json     @default("{}")
-  created_at        DateTime @default(now())
+  id                Int            @id @default(autoincrement())
+  name              String         @unique @db.VarChar(255)
+  subscription_type String         @default("basic") @db.VarChar(50)
+  settings          Json           @default("{}")
+  created_at        DateTime       @default(now())
   users             User[]
+  formResponses     FormResponse[]
 
   @@map("organizations")
 }
 
 model User {
-  id              Int           @id @default(autoincrement())
-  name            String        @db.VarChar(255)
-  email           String        @unique @db.VarChar(255)
-  password        String        @db.VarChar(255)
-  role            String        @default("employer") @db.VarChar(50)
+  id              Int            @id @default(autoincrement())
+  name            String         @db.VarChar(255)
+  email           String         @unique @db.VarChar(255)
+  password        String         @db.VarChar(255)
+  role            String         @default("employer") @db.VarChar(50)
   organization_id Int?
-  created_at      DateTime      @default(now())
+  created_at      DateTime       @default(now())
   last_login      DateTime?
-  organization    Organization? @relation(fields: [organization_id], references: [id])
+  organization    Organization?  @relation(fields: [organization_id], references: [id])
+  formResponses   FormResponse[]
 
   @@map("users")
 }
@@ -38,6 +40,7 @@ model Module {
   moduleName   String    @db.VarChar(255)
   created_at   DateTime  @default(now())
   articles     Article[]
+  forms        Form[]
 
   @@map("modules")
 }
@@ -68,4 +71,34 @@ model File {
   @@index([filename], map: "idx_files_filename")
   @@index([uploadedBy], map: "idx_files_uploaded_by")
   @@map("files")
+}
+
+model Form {
+  id          Int            @id @default(autoincrement())
+  moduleId    Int
+  formName    String         @db.VarChar(255)
+  questions   Json           // Array of question objects
+  created_at  DateTime       @default(now())
+  position    Int?           @default(0)
+  updated_at  DateTime       @default(now()) @updatedAt
+  module      Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  responses   FormResponse[]
+
+  @@map("forms")
+}
+
+model FormResponse {
+  id              Int          @id @default(autoincrement())
+  formId          Int
+  organizationId  Int
+  userId          Int          // Keep userId to track who last updated
+  answers         Json         // Object with questionId as key and answer as value
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  form            Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, organizationId])
+  @@map("form_responses")
 }

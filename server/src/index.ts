@@ -9,7 +9,7 @@ import { UserService, OrganizationService, initializeDatabase, closeDatabase, Us
 import { getEnvVar, getEnvVarAsNumber } from './env';
 
 const app = express();
-const PORT = getEnvVarAsNumber('PORT', 5001);
+const PORT = getEnvVarAsNumber('PORT', 3000);
 
 // JWT secret
 const JWT_SECRET = getEnvVar('JWT_SECRET', 'your-secret-key');
@@ -52,13 +52,21 @@ app.post('/api/register', async (req: Request, res: Response) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create organization if provided
+    // Find existing organization or create new one if provided
     let organizationId: number | undefined = undefined;
     if (organization) {
-      console.log('Creating organization:', organization);
-      const orgResult = await OrganizationService.create(organization);
-      organizationId = orgResult.id;
-      console.log('Organization created with ID:', organizationId);
+      console.log('Looking for organization:', organization);
+      let existingOrg = await OrganizationService.findByName(organization);
+
+      if (existingOrg) {
+        console.log('Found existing organization with ID:', existingOrg.id);
+        organizationId = existingOrg.id;
+      } else {
+        console.log('Creating new organization:', organization);
+        const orgResult = await OrganizationService.create(organization);
+        organizationId = orgResult.id;
+        console.log('Organization created with ID:', organizationId);
+      }
     }
 
     // Create user
@@ -161,6 +169,32 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
   });
 };
 
+// Organization validation middleware
+const validateSameOrganization = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { userId: targetUserId } = req.params;
+    const currentUser = await UserService.findById(req.user!.userId);
+    
+    if (!currentUser || !currentUser.organization_id) {
+      res.status(403).json({ error: 'User must belong to an organization' });
+      return;
+    }
+
+    if (targetUserId) {
+      const targetUser = await UserService.findById(parseInt(targetUserId));
+      if (!targetUser || targetUser.organization_id !== currentUser.organization_id) {
+        res.status(403).json({ error: 'Access denied: users must be in the same organization' });
+        return;
+      }
+    }
+
+    next();
+  } catch (error) {
+    console.error('Organization validation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 // Protected route to verify token
 app.get('/api/verify', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -244,6 +278,234 @@ app.get('/api/articles/:id/public', async (req: Request, res: Response) => {
     res.json(article);
   } catch (error) {
     console.error('Error fetching public article:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Form routes
+app.get('/api/modules/:moduleId/forms', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+
+    const forms = await prisma.form.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: [
+        { position: 'asc' } as any,
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/modules/:moduleId/forms/authenticated', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId } = req.params;
+
+    const forms = await prisma.form.findMany({
+      where: { moduleId: parseInt(moduleId) },
+      orderBy: [
+        { position: 'asc' } as any,
+        { created_at: 'asc' }
+      ]
+    });
+
+    res.json(forms);
+  } catch (error) {
+    console.error('Error fetching authenticated forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/forms', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { moduleId, formName, questions } = req.body;
+
+    const form = await prisma.form.create({
+      data: {
+        moduleId: parseInt(moduleId),
+        formName,
+        questions,
+        position: 0
+      }
+    });
+
+    res.status(201).json(form);
+  } catch (error) {
+    console.error('Error creating form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/forms/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { formName, questions } = req.body;
+
+    const form = await prisma.form.update({
+      where: { id: parseInt(id) },
+      data: {
+        formName,
+        questions,
+        updated_at: new Date()
+      }
+    });
+
+    res.json(form);
+  } catch (error) {
+    console.error('Error updating form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/forms/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.form.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ message: 'Form deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting form:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/forms/reorder', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { forms } = req.body;
+
+    if (!forms || !Array.isArray(forms)) {
+      return res.status(400).json({ error: 'Invalid forms data' });
+    }
+
+    await Promise.all(
+      forms.map((form: any) =>
+        prisma.form.update({
+          where: { id: form.id },
+          data: { position: form.position }
+        })
+      )
+    );
+
+    res.json({ message: 'Forms reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering forms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Form response routes (individual user)
+app.get('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { formId } = req.params;
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
+
+    const response = await prisma.formResponse.findUnique({
+      where: {
+        formId_organizationId: {
+          formId: parseInt(formId),
+          organizationId: currentUser.organization_id
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/forms/:formId/response', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { formId } = req.params;
+    const { answers } = req.body;
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
+
+    const response = await prisma.formResponse.upsert({
+      where: {
+        formId_organizationId: {
+          formId: parseInt(formId),
+          organizationId: currentUser.organization_id
+        }
+      },
+      update: {
+        answers,
+        userId: currentUser.id, // Track who last updated
+        updated_at: new Date()
+      },
+      create: {
+        formId: parseInt(formId),
+        organizationId: currentUser.organization_id,
+        userId: currentUser.id,
+        answers
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error saving form response:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get organization users for a form (to show who can collaborate)
+app.get('/api/forms/:formId/organization/users', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const currentUser = await UserService.findById(req.user!.userId);
+
+    if (!currentUser || !currentUser.organization_id) {
+      return res.status(403).json({ error: 'User must belong to an organization' });
+    }
+
+    // Get all users in the same organization
+    const organizationUsers = await prisma.user.findMany({
+      where: {
+        organization_id: currentUser.organization_id
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    });
+
+    res.json(organizationUsers);
+  } catch (error) {
+    console.error('Error fetching organization users:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -667,7 +929,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
     try {
       let processedBuffer = req.file.buffer;
       let finalMimetype = req.file.mimetype;
-      
+
       // Compress images using sharp
       if (req.file.mimetype.startsWith('image/')) {
         console.log('Compressing image:', {
@@ -687,9 +949,9 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
             progressive: true 
           })
           .toBuffer();
-        
+
         finalMimetype = 'image/jpeg';
-        
+
         console.log('Image compressed:', {
           originalSize: req.file.size,
           compressedSize: processedBuffer.length,
@@ -712,7 +974,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
         data: processedBuffer,
         uploadedBy: req.user?.userId
       });
-      
+
       console.log('File uploaded and saved to database:', {
         id: fileRecord.id,
         filename: fileRecord.filename,
@@ -733,7 +995,7 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
       });
     } catch (error) {
       console.error('File upload error:', error);
-      
+
       res.status(500).json({ 
         error: 'Failed to save file',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -746,29 +1008,29 @@ app.post('/api/upload', authenticateToken, requireAdmin, async (req: Authenticat
 app.get('/api/files/:id', async (req: Request, res: Response) => {
   try {
     const fileId = parseInt(req.params.id);
-    
+
     if (isNaN(fileId)) {
       return res.status(400).json({ error: 'Invalid file ID' });
     }
-    
+
     // Find file in database
     const fileRecord = await prisma.file.findUnique({
       where: { id: fileId }
     });
-    
+
     if (!fileRecord) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     // Set appropriate headers
     res.setHeader('Content-Type', fileRecord.mimeType);
     res.setHeader('Content-Length', fileRecord.size);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     res.setHeader('Content-Disposition', `inline; filename="${fileRecord.originalName}"`);
-    
+
     // Send binary data
     res.end(fileRecord.data);
-    
+
   } catch (error) {
     console.error('Error serving file:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -779,11 +1041,11 @@ app.get('/api/files/:id', async (req: Request, res: Response) => {
 app.get('/api/files/:id/info', authenticateToken, async (req: Request, res: Response) => {
   try {
     const fileId = parseInt(req.params.id);
-    
+
     if (isNaN(fileId)) {
       return res.status(400).json({ error: 'Invalid file ID' });
     }
-    
+
     const fileRecord = await prisma.file.findUnique({
       where: { id: fileId },
       select: {
@@ -795,11 +1057,11 @@ app.get('/api/files/:id/info', authenticateToken, async (req: Request, res: Resp
         created_at: true
       }
     });
-    
+
     if (!fileRecord) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     res.json(fileRecord);
   } catch (error) {
     console.error('Error getting file info:', error);
