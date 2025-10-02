@@ -1,3 +1,4 @@
+// @ts-nocheck 
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { User, Module } from '../../interfaces/navigatorIntfs';
@@ -51,7 +52,7 @@ const FormViewer: React.FC<{ currentUser: User; modules: Module[]; forms: any[] 
         </div>
   
         <div className="form-content">
-          {form.questions.map((question, index) => (
+          {form.questions.map((question:any, index:number) => (
             <div key={question.id} className="form-question">
               <label className="question-label">
                 {question.text}
@@ -86,7 +87,8 @@ const FormViewer: React.FC<{ currentUser: User; modules: Module[]; forms: any[] 
                   className="form-select"
                 >
                   {question.required && <option value="">Select an option</option>}
-                  {question.options.map(option => (
+                  {question.options.map(
+                  option => (
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>

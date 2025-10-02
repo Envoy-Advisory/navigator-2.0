@@ -576,7 +576,7 @@ const AdminPanel: React.FC<{
                         Loading actions...
                       </div>
                     ) : forms.length > 0 ? (
-                      forms.map((form, index) => (
+                      forms.map((form:any, index:number) => (
                         <div key={form.id} className="form-item">
                           <div className="drag-handle">⋮⋮</div>
                           <div className="form-info">
