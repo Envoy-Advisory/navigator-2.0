@@ -74,6 +74,28 @@ To do so, you could go to the "Schema Visualizer" section and observe the DB sch
 ![Supabase Setup](./images/SupabaseImage10.png)
 
 
+## Problem Statement
+
+After initializing the DB, the app can be functional but the Admin page is not visible.
+
+## Solution
+
+We need to perform the following steps to enable a user to access the admin page.
+
+## Step 1: Edit the 'users' table
+
+As long as a new user has been created from the registration form, there will be a corresponding entry in the 'users' table with the role 'employer', as this is the default role in the app.
+From there, the app's developer (that has edit access in the Supabase service) can edit this entry with the value 'admin' for the propsective admin user of the app.
+
+![Supabase Setup](./images/SupabaseImage11.png)
+
+## Step 2: Logout and Re-Login
+
+After the edit in the DB table has been performed, the prospective user would need to logout and re-login once.
+Once this happens, he/she will be able to see the "Admin" button from where he/she can navigate in the Admin panel of the app.
+
+![Supabase Setup](./images/SupabaseImage12.png)
+
 ## Additional Notes
 
 - Consider setting up automated branch creation for future releases
