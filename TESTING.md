@@ -372,4 +372,152 @@ For testing-related questions or issues:
 
 ---
 
+## 🔄 CI/CD Integration
+
+Tests are now integrated into the build and deployment process:
+
+### Pre-Commit Hooks (Husky)
+
+Tests run automatically before each commit:
+
+```bash
+git commit -m "your message"
+# 🧪 Running tests before commit...
+# ✅ All tests passed! Proceeding with commit...
+```
+
+To bypass hooks in emergency (not recommended):
+```bash
+git commit --no-verify -m "emergency fix"
+```
+
+### Build Process
+
+All build commands now run tests first:
+
+```bash
+# These commands run tests before building
+npm run build              # Runs tests, then builds
+npm run build:prod         # Runs tests, then builds for production
+npm run build:dev          # Runs tests, then builds for dev
+npm run build:uat          # Runs tests, then builds for UAT
+
+# Skip tests (use with caution)
+npm run build:skip-tests   # Builds without running tests
+```
+
+### GitHub Actions Workflows
+
+#### CI Pipeline (`.github/workflows/ci.yml`)
+
+Runs on every push and pull request:
+
+1. **Test Job**: Runs tests on Node 18.x and 20.x
+   - Server tests
+   - Client tests
+   - Coverage reports
+
+2. **Build Job**: Builds the application
+   - Only runs if tests pass
+   - Uploads build artifacts
+
+3. **Lint Job**: TypeScript checks
+   - Type checking
+   - Code quality validation
+
+4. **Security Job**: Security audits
+   - npm audit for vulnerabilities
+
+#### Deploy Pipeline (`.github/workflows/deploy.yml`)
+
+Runs on pushes to `main` or `staging` branches:
+
+1. **Test Before Deploy**: Full test suite with coverage thresholds
+2. **Build and Deploy**: Build with environment-specific configs
+3. **Notify**: Deployment status notifications
+
+### Manual Deployment with Test Gates
+
+```bash
+# Deploy to production (runs tests first)
+npm run build:prod
+
+# Deploy to UAT (runs tests first)
+npm run build:uat
+
+# Deploy to dev (runs tests first)
+npm run build:dev
+```
+
+### Coverage Requirements
+
+Minimum coverage thresholds enforced:
+
+**Server:**
+- Branches: 70%
+- Functions: 75%
+- Lines: 80%
+- Statements: 80%
+
+**Client:**
+- Branches: 60%
+- Functions: 65%
+- Lines: 70%
+- Statements: 70%
+
+### Continuous Integration Features
+
+✅ **Automated Testing**: Tests run on every commit and PR  
+✅ **Build Validation**: Builds only proceed if tests pass  
+✅ **Coverage Tracking**: Coverage reports uploaded to Codecov  
+✅ **Security Scanning**: Automated vulnerability detection  
+✅ **Multi-Environment**: Separate workflows for dev/UAT/production  
+✅ **Artifact Storage**: Build artifacts saved for deployment
+
+### Setting Up Locally
+
+1. Install Husky hooks:
+```bash
+npm install
+npm run prepare
+```
+
+2. Verify hooks are installed:
+```bash
+ls -la .husky/
+# Should see pre-commit and pre-push files
+```
+
+3. Test the hooks:
+```bash
+# Make a change
+echo "test" >> test.txt
+git add test.txt
+git commit -m "test commit"
+# Tests will run automatically
+```
+
+### Environment Variables for CI/CD
+
+Add these secrets to your GitHub repository:
+
+```yaml
+DATABASE_URL          # Database connection string
+JWT_SECRET           # JWT signing secret
+VERCEL_TOKEN         # Vercel deployment token (if using Vercel)
+VERCEL_ORG_ID       # Vercel organization ID
+VERCEL_PROJECT_ID   # Vercel project ID
+```
+
+### Skipping CI (Emergency Only)
+
+Add `[skip ci]` or `[ci skip]` to commit message:
+```bash
+git commit -m "docs update [skip ci]"
+```
+
+⚠️ **Note**: This bypasses all CI checks and should only be used for documentation changes or emergency situations.
+
+---
+
 **Happy Testing! 🎉**
