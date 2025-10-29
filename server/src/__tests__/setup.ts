@@ -1,8 +1,9 @@
 // Test setup for server-side tests
-import { config } from 'dotenv';
 
-// Load test environment variables
-config({ path: '.env.test' });
+// Set environment variables BEFORE any imports that might use them
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-secret-key';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
 
 // Mock console methods to reduce noise in tests
 const originalConsole = console;
@@ -18,8 +19,3 @@ afterAll(() => {
   console.error = originalConsole.error;
   console.warn = originalConsole.warn;
 });
-
-// Mock environment variables for testing
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-secret-key';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';

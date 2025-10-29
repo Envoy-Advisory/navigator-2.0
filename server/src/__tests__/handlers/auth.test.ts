@@ -5,6 +5,9 @@ import { registerHandler, loginHandler, verifyHandler, healthHandler } from '../
 import { UserService, OrganizationService } from '../../database';
 import { AuthenticatedRequest } from '../../types';
 
+// Mock the env module before importing database (which calls loadEnvironment)
+jest.mock('../../env');
+
 // Mock dependencies
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');

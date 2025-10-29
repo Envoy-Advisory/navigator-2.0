@@ -3,10 +3,8 @@ import jwt from 'jsonwebtoken';
 import { authenticateToken, requireAdmin, validateSameOrganization } from '../../middleware/auth';
 import { AuthenticatedRequest } from '../../types';
 
-// Mock the env module
-jest.mock('../../env', () => ({
-  getEnvVar: jest.fn(() => 'test-secret-key'),
-}));
+// Mock the env module specifically for this test
+jest.mock('../../env');
 
 describe('Auth Middleware', () => {
   let mockRequest: Partial<AuthenticatedRequest>;

@@ -13,14 +13,12 @@
     "declarationMap": true,
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types"],
+    "types": ["jest", "node"],
     "moduleResolution": "node"
   },
   "include": ["src/**/*"],
   "exclude": [
     "node_modules",
-    "dist",
-    "src/**/__tests__/**",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts"
+    "dist"
   ]
 }

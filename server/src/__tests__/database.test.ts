@@ -1,3 +1,6 @@
+// Mock the env module before importing database (which calls loadEnvironment)
+jest.mock('../env');
+
 import { prisma, UserService, OrganizationService } from '../database';
 
 // Mock Prisma client

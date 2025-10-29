@@ -3,6 +3,9 @@ import express from 'express';
 import { registerHandler, loginHandler, verifyHandler, healthHandler } from '../../handlers/auth';
 import { authenticateToken } from '../../middleware/auth';
 
+// Mock the env module before other modules load
+jest.mock('../../env');
+
 // Mock the database services
 jest.mock('../../database', () => ({
   UserService: {
