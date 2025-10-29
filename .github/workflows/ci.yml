@@ -1,0 +1,174 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install root dependencies
+        run: npm ci
+      
+      - name: Install server dependencies
+        run: cd server && npm ci
+      
+      - name: Install client dependencies
+        run: cd client && npm ci
+      
+      - name: Generate Prisma Client
+        run: cd server && npx prisma generate
+      
+      - name: Run Server Tests
+        run: npm run test:server
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          JWT_SECRET: test-secret-key-for-ci
+      
+      - name: Run Client Tests
+        run: npm run test:client
+      
+      # Generate coverage reports for both server and client
+      - name: Generate Coverage Report
+        run: npm run test:coverage
+        continue-on-error: true
+      
+      - name: Display Coverage Summary
+        if: matrix.node-version == '20.x'
+        run: |
+          echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "./server/coverage/lcov.info" ]; then
+            echo "### Server Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cd server && npm run test:coverage -- --reporter=text-summary | tail -20 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "./client/coverage/lcov.info" ]; then
+            echo "### Client Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cd client && npm run test:coverage -- --reporter=text-summary | tail -20 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      # Upload coverage reports as artifacts for download and viewing
+      - name: Upload Coverage to GitHub
+        uses: actions/upload-artifact@v4
+        if: matrix.node-version == '20.x'
+        with:
+          name: coverage-report
+          path: |
+            ./server/coverage/
+            ./client/coverage/
+          retention-days: 30
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Generate Prisma Client
+        run: cd server && npx prisma generate
+      
+      - name: Build Server
+        run: cd server && npm run build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+      
+      - name: Build Client
+        run: cd client && npm run build
+      
+      - name: Upload Server Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-build
+          path: server/dist/
+          retention-days: 7
+      
+      - name: Upload Client Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-build
+          path: client/dist/
+          retention-days: 7
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Run TypeScript Compiler Check (Server)
+        run: cd server && npx tsc --noEmit
+        continue-on-error: true
+      
+      - name: Run TypeScript Compiler Check (Client)
+        run: cd client && npx tsc --noEmit
+        continue-on-error: true
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Run Security Audit
+        run: |
+          npm audit --production || true
+          cd server && npm audit --production || true
+          cd ../client && npm audit --production || true
+
