@@ -1,0 +1,133 @@
+name: Deploy to Production/Staging
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
+          - uat
+
+jobs:
+  test-before-deploy:
+    name: Run Full Test Suite
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install all dependencies
+        run: npm run install:all
+      
+      - name: Generate Prisma Client
+        run: cd server && npx prisma generate
+      
+      - name: Run All Tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          JWT_SECRET: test-secret-key
+      
+      - name: Run Coverage
+        run: npm run test:coverage
+      
+      - name: Check Coverage Thresholds
+        run: |
+          echo "Checking coverage thresholds..."
+          cd server && npm run test:coverage -- --coverageThreshold='{"global":{"branches":70,"functions":75,"lines":80,"statements":80}}'
+          cd ../client && npm run test:coverage -- --coverageThreshold='{"global":{"branches":60,"functions":65,"lines":70,"statements":70}}'
+
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: test-before-deploy
+    
+    environment:
+      name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production') || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Generate Prisma Client
+        run: cd server && npx prisma generate
+      
+      - name: Set Environment
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "DEPLOY_ENV=prod" >> $GITHUB_ENV
+          elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            echo "DEPLOY_ENV=uat" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_ENV=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          fi
+      
+      - name: Build Application
+        run: npm run build:${{ env.DEPLOY_ENV }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      
+      - name: Run Post-Build Tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          JWT_SECRET: test-secret-key
+      
+      # Add your deployment steps here
+      # Example for Vercel:
+      # - name: Deploy to Vercel
+      #   uses: amondnet/vercel-action@v25
+      #   with:
+      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      #     vercel-args: '--prod'
+      
+      - name: Deployment Summary
+        run: |
+          echo "✅ Tests Passed"
+          echo "✅ Build Successful"
+          echo "🚀 Ready for deployment to ${{ env.DEPLOY_ENV }}"
+          echo "📦 Artifacts generated and ready"
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [test-before-deploy, build-and-deploy]
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.build-and-deploy.result }}" == "success" ]; then
+            echo "🎉 Deployment completed successfully!"
+          else
+            echo "❌ Deployment failed. Check the logs for details."
+            exit 1
+          fi
+

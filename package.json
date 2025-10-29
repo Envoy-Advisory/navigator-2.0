@@ -17,11 +17,13 @@
         "dev:client:local": "cd client && npm run dev:local",
         "dev:client:dev": "cd client && npm run dev:dev",
         "dev:client:uat": "cd client && npm run dev:uat",
+        "prebuild": "npm test",
         "build": "cd server && npm run build && cd ../client && npm run build",
-        "build:local": "cd server && npm run build && cd ../client && npm run build:local",
-        "build:dev": "cd server && npm run build && cd ../client && npm run build:dev",
-        "build:uat": "cd server && npm run build && cd ../client && npm run build:uat",
-        "build:prod": "cd server && npm run build:prod && cd ../client && npm run build:prod",
+        "build:local": "npm test && cd server && npm run build && cd ../client && npm run build:local",
+        "build:dev": "npm test && cd server && npm run build && cd ../client && npm run build:dev",
+        "build:uat": "npm test && cd server && npm run build && cd ../client && npm run build:uat",
+        "build:prod": "npm test && cd server && npm run build:prod && cd ../client && npm run build:prod",
+        "build:skip-tests": "cd server && npm run build && cd ../client && npm run build",
         "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
         "start:local": "concurrently \"npm run start:server:local\" \"npm run start:client:local\"",
         "start:dev": "concurrently \"npm run start:server:dev\" \"npm run start:client:dev\"",
@@ -41,7 +43,30 @@
         "db:push": "cd server && npm run db:push",
         "db:migrate": "cd server && npm run db:migrate",
         "db:reset": "cd server && npm run db:reset",
-        "db:seed": "cd server && npm run db:seed"
+        "db:seed": "cd server && npm run db:seed",
+        "test": "npm run test:server && npm run test:client",
+        "test:coverage": "npm run test:server:coverage && npm run test:client:coverage",
+        "test:server": "cd server && npm test",
+        "test:client": "cd client && npm test",
+        "test:server:coverage": "cd server && npm run test:coverage",
+        "test:client:coverage": "cd client && npm run test:coverage",
+        "prepare": "husky install || echo 'Husky not installed yet'",
+        "lint": "cd server && npm run lint && cd ../client && npm run lint",
+        "validate": "npm test && npm run lint"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "npm test",
+            "pre-push": "npm run validate"
+        }
+    },
+    "lint-staged": {
+        "server/**/*.{ts,tsx}": [
+            "cd server && npm test"
+        ],
+        "client/**/*.{ts,tsx}": [
+            "cd client && npm test"
+        ]
     },
     "devDependencies": {
         "@types/bcrypt": "^6.0.0",
@@ -50,7 +75,9 @@
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^24.1.0",
         "@types/pg": "^8.15.5",
-        "concurrently": "^7.6.0"
+        "concurrently": "^7.6.0",
+        "husky": "^8.0.3",
+        "lint-staged": "^15.2.2"
     },
     "dependencies": {
         "@types/multer": "^2.0.0",

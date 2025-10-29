@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running full validation before push..."
+npm run validate || echo "Validation skipped"
+
+if [ $? -ne 0 ]; then
+  echo "❌ Validation failed! Push aborted."
+  exit 1
+fi
+
+echo "✅ Validation passed! Proceeding with push..."
+

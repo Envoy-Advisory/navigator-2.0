@@ -24,6 +24,130 @@ import ModuleDetail from './components/Articles/Modules/ModuleDetail';
 import AdminPanel from './components/Admin/AdminPanel';
 
 import './App.css';
+
+// Login and Registration Modal Components (defined before App to avoid hoisting issues)
+const LoginModal: React.FC<{
+  onLogin: (email: string, password: string) => Promise<void>;
+  onClose: () => void;
+  onSwitchToRegister: () => void;
+}> = ({ onLogin, onClose, onSwitchToRegister }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onLogin(email, password);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        <h2>Login to Your Account</h2>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit" className="auth-submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+        <p className="auth-switch">
+          Don't have an account?
+          <button onClick={onSwitchToRegister} className="switch-btn">Sign up here</button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const RegistrationModal: React.FC<{
+  onRegister: (name: string, email: string, password: string, organization: string) => Promise<void>;
+  onClose: () => void;
+  onSwitchToLogin: () => void;
+}> = ({ onRegister, onClose, onSwitchToLogin }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    organization: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onRegister(formData.name, formData.email, formData.password, formData.organization);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        <h2>Create Your Account</h2>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            required
+          />
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Organization Name"
+            value={formData.organization}
+            onChange={(e) => setFormData({...formData, organization: e.target.value})}
+            required
+          />
+          <button type="submit" className="auth-submit" disabled={isLoading}>
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
+        </form>
+        <p className="auth-switch">
+          Already have an account?
+          <button onClick={onSwitchToLogin} className="switch-btn">Login here</button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -191,7 +315,6 @@ const App: React.FC = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-      console.log("actual response: ",response);
       const data = await response.json();
 
       if (response.ok) {
@@ -316,129 +439,6 @@ const App: React.FC = () => {
         )}
       </div>
     </Router>
-  );
-};
-
- // pending refactoring for login dialog and registration journey
-const LoginModal: React.FC<{
-  onLogin: (email: string, password: string) => Promise<void>;
-  onClose: () => void;
-  onSwitchToRegister: () => void;
-}> = ({ onLogin, onClose, onSwitchToRegister }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      await onLogin(email, password);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
-        <h2>Login to Your Account</h2>
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <button type="submit" className="auth-submit" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        <p className="auth-switch">
-          Don't have an account?
-          <button onClick={onSwitchToRegister} className="switch-btn">Sign up here</button>
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const RegistrationModal: React.FC<{
-  onRegister: (name: string, email: string, password: string, organization: string) => Promise<void>;
-  onClose: () => void;
-  onSwitchToLogin: () => void;
-}> = ({ onRegister, onClose, onSwitchToLogin }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    organization: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      await onRegister(formData.name, formData.email, formData.password, formData.organization);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
-        <h2>Create Your Account</h2>
-        <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={(e) => setFormData({...formData, email: e.target.value})}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={(e) => setFormData({...formData, password: e.target.value})}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Organization Name"
-            value={formData.organization}
-            onChange={(e) => setFormData({...formData, organization: e.target.value})}
-            required
-          />
-          <button type="submit" className="auth-submit" disabled={isLoading}>
-            {isLoading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
-        <p className="auth-switch">
-          Already have an account?
-          <button onClick={onSwitchToLogin} className="switch-btn">Login here</button>
-        </p>
-      </div>
-    </div>
   );
 };
 
