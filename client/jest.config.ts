@@ -10,6 +10,7 @@ const config: Config = {
       useESM: false,
       tsconfig: {
         jsx: 'react-jsx',
+        types: ['jest', '@testing-library/jest-dom', 'node'],
       },
     }],
   },

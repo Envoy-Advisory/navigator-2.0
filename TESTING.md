@@ -40,7 +40,6 @@ navigator-2.0/
 │   │   └── ...
 │   ├── jest.config.ts                   # Jest configuration (TypeScript)
 │   └── package.json                     # Test scripts
-├── test-runner.js                       # Comprehensive test runner
 └── package.json                         # Root test scripts
 ```
 
@@ -49,14 +48,11 @@ navigator-2.0/
 ### Quick Start
 
 ```bash
-# Run all tests
+# Run all tests (server + client)
 npm test
 
 # Run tests with coverage
 npm run test:coverage
-
-# Install dependencies and run tests
-npm run test:install
 ```
 
 ### Individual Test Suites
