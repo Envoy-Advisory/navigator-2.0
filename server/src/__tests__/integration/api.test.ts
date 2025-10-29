@@ -3,26 +3,9 @@ import express from 'express';
 import { registerHandler, loginHandler, verifyHandler, healthHandler } from '../../handlers/auth';
 import { authenticateToken } from '../../middleware/auth';
 
-// Mock the env module before other modules load
+// Mock the env and database modules before other modules load
 jest.mock('../../env');
-
-// Mock the database services
-jest.mock('../../database', () => ({
-  UserService: {
-    findByEmail: jest.fn(),
-    create: jest.fn(),
-    findById: jest.fn(),
-    updateLastLogin: jest.fn(),
-  },
-  OrganizationService: {
-    findByName: jest.fn(),
-    create: jest.fn(),
-  },
-}));
-
-jest.mock('../../env', () => ({
-  getEnvVar: jest.fn(() => 'test-secret-key'),
-}));
+jest.mock('../../database');
 
 // Mock bcrypt and jwt
 jest.mock('bcrypt');

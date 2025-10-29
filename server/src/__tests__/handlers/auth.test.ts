@@ -5,28 +5,13 @@ import { registerHandler, loginHandler, verifyHandler, healthHandler } from '../
 import { UserService, OrganizationService } from '../../database';
 import { AuthenticatedRequest } from '../../types';
 
-// Mock the env module before importing database (which calls loadEnvironment)
+// Mock the env and database modules before importing
 jest.mock('../../env');
+jest.mock('../../database');
 
 // Mock dependencies
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');
-jest.mock('../../database', () => ({
-  UserService: {
-    findByEmail: jest.fn(),
-    create: jest.fn(),
-    findById: jest.fn(),
-    updateLastLogin: jest.fn(),
-  },
-  OrganizationService: {
-    findByName: jest.fn(),
-    create: jest.fn(),
-  },
-}));
-
-jest.mock('../../env', () => ({
-  getEnvVar: jest.fn(() => 'test-secret-key'),
-}));
 
 const mockUserService = UserService as jest.Mocked<typeof UserService>;
 const mockOrganizationService = OrganizationService as jest.Mocked<typeof OrganizationService>;

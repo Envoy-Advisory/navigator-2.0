@@ -1,30 +1,13 @@
 // Mock the env module before importing database (which calls loadEnvironment)
 jest.mock('../env');
 
-import { prisma, UserService, OrganizationService } from '../database';
+// Mock the Prisma client (will use __mocks__/@prisma/client.ts)
+jest.mock('@prisma/client');
 
-// Mock Prisma client
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    organization: {
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
-  })),
-}));
+// Unmock the database module so we test the real implementation
+jest.unmock('../database');
+
+import { prisma, UserService, OrganizationService, initializeDatabase, closeDatabase } from '../database';
 
 // Type-safe mock access
 const getMockPrisma = () => ({
@@ -45,6 +28,7 @@ const getMockPrisma = () => ({
   },
   $connect: prisma.$connect as jest.MockedFunction<any>,
   $disconnect: prisma.$disconnect as jest.MockedFunction<any>,
+  $queryRaw: (prisma as any).$queryRaw as jest.Mock,
 });
 
 describe('Database Services', () => {
@@ -313,18 +297,40 @@ describe('Database Services', () => {
   });
 
   describe('Database connection', () => {
+    it('should initialize database successfully', async () => {
+      mockPrisma.$connect.mockResolvedValue(undefined);
+      mockPrisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+      
+      await initializeDatabase();
+      
+      expect(mockPrisma.$connect).toHaveBeenCalled();
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
+    });
+
     it('should handle connection errors', async () => {
       const connectionError = new Error('Connection refused');
       mockPrisma.$connect.mockRejectedValue(connectionError);
 
-      // This would typically be handled during app initialization
-      await expect(mockPrisma.$connect()).rejects.toThrow('Connection refused');
+      await expect(initializeDatabase()).rejects.toThrow('Connection refused');
     });
 
-    it('should handle disconnection', async () => {
-      mockPrisma.$disconnect.mockResolvedValue(undefined);
+    it('should handle connection test errors', async () => {
+      mockPrisma.$connect.mockResolvedValue(undefined);
+      mockPrisma.$queryRaw.mockRejectedValue(new Error('Query failed'));
+      
+      await expect(initializeDatabase()).rejects.toThrow('Query failed');
+    });
 
-      await expect(mockPrisma.$disconnect()).resolves.toBeUndefined();
+    it('should handle disconnection successfully', async () => {
+      mockPrisma.$disconnect.mockResolvedValue(undefined);
+      await closeDatabase();
+      expect(mockPrisma.$disconnect).toHaveBeenCalled();
+    });
+
+    it('should handle disconnection errors gracefully', async () => {
+      mockPrisma.$disconnect.mockRejectedValue(new Error('Disconnect failed'));
+      // closeDatabase catches errors and doesn't throw
+      await expect(closeDatabase()).resolves.toBeUndefined();
     });
   });
 
