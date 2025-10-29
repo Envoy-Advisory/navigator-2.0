@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 
 // Polyfill for TextEncoder/TextDecoder (required by React Router)
 import { TextEncoder, TextDecoder } from 'util';
-global.TextEncoder = TextEncoder;
+global.TextEncoder = TextEncoder as any;
 global.TextDecoder = TextDecoder as any;
 
 // Mock localStorage
