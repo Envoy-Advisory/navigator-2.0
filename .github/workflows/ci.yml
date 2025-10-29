@@ -46,18 +46,43 @@ jobs:
       - name: Run Client Tests
         run: npm run test:client
       
+      # Generate coverage reports for both server and client
       - name: Generate Coverage Report
         run: npm run test:coverage
         continue-on-error: true
       
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Display Coverage Summary
+        if: matrix.node-version == '20.x'
+        run: |
+          echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "./server/coverage/lcov.info" ]; then
+            echo "### Server Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cd server && npm run test:coverage -- --reporter=text-summary | tail -20 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f "./client/coverage/lcov.info" ]; then
+            echo "### Client Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cd client && npm run test:coverage -- --reporter=text-summary | tail -20 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      # Upload coverage reports as artifacts for download and viewing
+      - name: Upload Coverage to GitHub
+        uses: actions/upload-artifact@v4
         if: matrix.node-version == '20.x'
         with:
-          files: ./server/coverage/lcov.info,./client/coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          name: coverage-report
+          path: |
+            ./server/coverage/
+            ./client/coverage/
+          retention-days: 30
 
   build:
     name: Build Application
